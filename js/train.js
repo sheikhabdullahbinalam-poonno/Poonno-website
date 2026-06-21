@@ -37,7 +37,9 @@ export class Train {
 
     this._p = new THREE.Vector3();
     this._t = new THREE.Vector3();
-    this.update(0);
+    this.u = this.uWait;   // damped progress (smooth, never steppy)
+    this.speed = 0;        // 0..1, drives the rumble swell
+    this._place(this.u);
   }
 
   // Arc-length fraction whose point is nearest (x,z).
@@ -52,19 +54,27 @@ export class Train {
     return best / (pts.length - 1);
   }
 
-  // Map scroll t → the loco's progress along the route (matches the camera beats).
+  // Map scroll t → the loco's target progress (eased, matches the camera beats).
   progressForT(t) {
     const W = this.uWait, C = this.uCreative, U = this.uUnilever, T = this.uTree;
     if (t < 0.22) return W;
-    if (t < 0.40) return lerp(W, C, (t - 0.22) / 0.18);
+    if (t < 0.40) return lerp(W, C, ease((t - 0.22) / 0.18));
     if (t < 0.52) return C;
-    if (t < 0.66) return lerp(C, U, (t - 0.52) / 0.14);
+    if (t < 0.66) return lerp(C, U, ease((t - 0.52) / 0.14));
     if (t < 0.78) return U;
-    return lerp(U, T, (t - 0.78) / 0.22);
+    return lerp(U, T, ease((t - 0.78) / 0.22));
   }
 
-  update(t) {
-    const u = this.progressForT(t);
+  update(t, dt) {
+    const target = this.progressForT(t);
+    const prev = this.u;
+    // Damp toward the target so the train glides smoothly regardless of scroll steps.
+    this.u += (target - this.u) * (1 - Math.exp(-2.6 * dt));
+    this.speed = Math.min(1, Math.abs(this.u - prev) / Math.max(dt, 1e-3) / 0.11);
+    this._place(this.u);
+  }
+
+  _place(u) {
     for (let i = 0; i < this.cars.length; i++) {
       const cu = clamp(u - i * this.gapU, 0.0002, 0.9998);
       this.curve.getPointAt(cu, this._p);
@@ -75,6 +85,8 @@ export class Train {
     }
   }
 }
+
+const ease = (k) => { k = Math.min(1, Math.max(0, k)); return k * k * (3 - 2 * k); };
 
 function makeCar(isLoco) {
   const g = new THREE.Group();

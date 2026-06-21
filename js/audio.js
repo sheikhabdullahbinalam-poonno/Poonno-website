@@ -12,10 +12,10 @@ export class AudioManager {
     this.muted = localStorage.getItem('poonno-muted') === '1';
     this.started = false;
 
-    this.bed = this._make('ambient platform loop.mp3', true, 0.55);
-    this.rumble = this._make('Train Rumble.mp3', true, 0.40);
+    this.bed = this._make('ambient platform loop.mp3', true, 0.5);
+    this.rumble = this._make('Train Rumble.mp3', true, 0.55);
     this.whistles = ['Whistle 1.mp3', 'Whistle 2.mp3', 'Whistle 3.mp3']
-      .map(f => this._make(f, false, 0.85));
+      .map(f => this._make(f, false, 0.5));
     this.chime = this._make('Soft UI Chime.mp3', false, 0.6);
 
     this._bag = [];

@@ -16,8 +16,46 @@ export function buildWorld(scene) {
   scene.add(makeSky());
   addLights(scene);
   addGround(scene);
+  addForest(scene);
   addLandmarks(scene);
   addTrack(scene);
+}
+
+// ---- mystical conifer forest lining the route (instanced for performance) ---
+function addForest(scene) {
+  const COUNT = 340;
+  const coneGeo = new THREE.ConeGeometry(1, 1, 7);          // unit cone, scaled per tree
+  const coneMat = new THREE.MeshStandardMaterial({ color: 0x223528, roughness: 0.96, metalness: 0 });
+  const trunkGeo = new THREE.CylinderGeometry(0.16, 0.26, 1.6, 5);
+  const trunkMat = new THREE.MeshStandardMaterial({ color: 0x281E16, roughness: 1 });
+  const cones = new THREE.InstancedMesh(coneGeo, coneMat, COUNT);
+  const trunks = new THREE.InstancedMesh(trunkGeo, trunkMat, COUNT);
+
+  const m = new THREE.Matrix4();
+  const q = new THREE.Quaternion();
+  const p = new THREE.Vector3();
+  const s = new THREE.Vector3();
+  let i = 0;
+  let guard = 0;
+  while (i < COUNT && guard++ < COUNT * 4) {
+    const side = Math.random() < 0.5 ? -1 : 1;
+    const x = side * (22 + Math.random() * 40);   // flanks the track corridor (|x| 22–62, clear of platforms)
+    const z = 50 - Math.random() * 450;           // +50 → −400 along the journey
+    if (z < -352 && x > -6 && x < 22) continue;   // keep the finale clearing open
+    const h = 5 + Math.random() * 9;
+    const r = 1.0 + Math.random() * 1.4;
+
+    p.set(x, 0.6 + h / 2, z); s.set(r, h, r); q.identity();
+    cones.setMatrixAt(i, m.compose(p, q, s));
+    p.set(x, 0.8, z); s.set(1, 1, 1);
+    trunks.setMatrixAt(i, m.compose(p, q, s));
+    i++;
+  }
+  cones.count = i; trunks.count = i;
+  cones.instanceMatrix.needsUpdate = true;
+  trunks.instanceMatrix.needsUpdate = true;
+  scene.add(cones);
+  scene.add(trunks);
 }
 
 // ---- dusk gradient sky dome (unaffected by fog so the gradient always reads) -
@@ -113,9 +151,10 @@ function addLandmarks(scene) {
   block(scene, { x: 13, y: 2.5, z: -190, w: 6, h: 5, d: 10, color: 0x394A57, beaconColor: PALETTE.ember });
 
   // Unilever station (steel-blue accent) — platform on the −X side of its track
-  // (track at x≈−5, platform beyond it, gap ~1) where the train banks left.
-  block(scene, { x: -10.5, y: 0.4, z: -295, w: 9, h: 0.8, d: 30, color: 0x33383D, beacon: false });
-  block(scene, { x: -13, y: 2.5, z: -295, w: 6, h: 5, d: 10, color: 0x394A57, beaconColor: PALETTE.haze });
+  // (track at x≈−5, platform beyond, gap ~1) where the train banks left. The
+  // building sits back as a backdrop so the platform vantage isn't a dark wall.
+  block(scene, { x: -13, y: 0.4, z: -295, w: 14, h: 0.8, d: 30, color: 0x33383D, beacon: false });
+  block(scene, { x: -18, y: 2.2, z: -295, w: 6, h: 4, d: 10, color: 0x394A57, beaconColor: PALETTE.haze });
 
   // Finale: the train STOPS beside the tree; a small step-down platform bridges
   // from the train (x≈2) toward the great tree (x≈7.5). The track does NOT run

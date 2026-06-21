@@ -134,16 +134,24 @@ export class Atmosphere {
       this.fogSprites.push(s);
     };
     // Platform fog: drifts along ±Z (screen-horizontal in the T-view), wraps.
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 8; i++) {
       const dir = i % 2 ? 1 : -1;
-      make(2 + (Math.random() * 16 - 8), 2 + Math.random() * 2.5,
-           0, (Math.random() * 36 - 18), 18 + Math.random() * 10,
-           dir * (1.4 + Math.random() * 1.2), 20, 0.20);
+      make(2 + (Math.random() * 18 - 9), 1.8 + Math.random() * 2.6,
+           0, (Math.random() * 36 - 18), 20 + Math.random() * 12,
+           dir * (1.3 + Math.random() * 1.2), 22, 0.26);
     }
-    // A little ambient drift at each station + the tree.
-    make(4, 2.5, -190, -190, 20, 1.3, 18, 0.16);
-    make(-6, 2.5, -295, -295, 20, -1.3, 18, 0.16);
-    make(7, 3.5, -372, -372, 16, 1.0, 14, 0.14);
+    // Ambient drift at each station + the tree.
+    make(10, 2.5, -190, -190, 24, 1.3, 18, 0.22);
+    make(-13, 2.5, -295, -295, 24, -1.3, 18, 0.22);
+    make(7.5, 3.5, -373, -373, 18, 1.0, 14, 0.16);
+    // Low ground mist drifting along the whole route (mystical depth).
+    for (let i = 0; i < 12; i++) {
+      const z = -18 - i * 30 + (Math.random() * 16 - 8);
+      const dir = i % 2 ? 1 : -1;
+      make((Math.random() < 0.5 ? -1 : 1) * (4 + Math.random() * 14), 1.6 + Math.random() * 2,
+           z, z + (Math.random() * 24 - 12), 22 + Math.random() * 12,
+           dir * (0.8 + Math.random()), 26, 0.15);
+    }
   }
 
   // ---- warm lamp glows (halos now; real fixtures arrive Phase 3) ----------

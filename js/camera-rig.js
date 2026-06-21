@@ -38,7 +38,8 @@ export class CameraRig {
     const a = keys[i];
     const b = keys[Math.min(i + 1, keys.length - 1)];
     const span = (b.t - a.t) || 1;
-    const u = Math.min(1, Math.max(0, (t - a.t) / span));
+    let u = Math.min(1, Math.max(0, (t - a.t) / span));
+    u = u * u * u * (u * (u * 6 - 15) + 10); // smootherstep — ease in/out per segment
     this._pos.lerpVectors(a.pos, b.pos, u);
     this._look.lerpVectors(a.look, b.look, u);
     return this;

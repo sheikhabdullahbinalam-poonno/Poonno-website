@@ -111,7 +111,8 @@ function animate() {
     camera.position.x += (Math.random() - 0.5) * shudder;
     camera.position.y += (Math.random() - 0.5) * shudder;
   }
-  train.update(t);
+  train.update(t, dt);
+  audio.setRumbleLevel(0.4 + 0.5 * train.speed); // idle rumble + swell with speed
   atmosphere.update(dt);
 
   const b = beatAt(t);
