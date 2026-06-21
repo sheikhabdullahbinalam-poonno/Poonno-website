@@ -22,6 +22,7 @@ dist/
 # Claude Code local settings & preview shim
 .claude/settings.local.json
 .claude/launch.json
+.mcp.json
 server.py
 
 # stray off-spec scaffold (not used — the vanilla build lives at the root)

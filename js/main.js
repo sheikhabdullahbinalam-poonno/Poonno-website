@@ -15,6 +15,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { BLOOM, RENDER, CAMERA, BEATS } from './config.js';
 import { buildWorld } from './world.js';
 import { CameraRig } from './camera-rig.js';
+import { Train } from './train.js';
 import { Atmosphere } from './atmosphere.js';
 import { AudioManager } from './audio.js';
 import { initUI } from './ui.js';
@@ -38,6 +39,7 @@ const camera = new THREE.PerspectiveCamera(
 
 buildWorld(scene);
 const rig = new CameraRig(camera);
+const train = new Train(scene);
 const atmosphere = new Atmosphere(scene, camera);
 const audio = new AudioManager();
 
@@ -109,6 +111,7 @@ function animate() {
     camera.position.x += (Math.random() - 0.5) * shudder;
     camera.position.y += (Math.random() - 0.5) * shudder;
   }
+  train.update(t);
   atmosphere.update(dt);
 
   const b = beatAt(t);

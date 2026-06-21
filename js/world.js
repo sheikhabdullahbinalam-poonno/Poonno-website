@@ -104,33 +104,38 @@ function beaconAt(x, y, z, color, size = 0.7, intensity = 2.4) {
 
 // ---- the story beats, as grey-box stand-ins ---------------------------------
 function addLandmarks(scene) {
-  // Start: concrete platform + the waiting train (long block running along Z so
-  // it spans the screen left-to-right in the "T" view).
-  block(scene, { x: 7, y: 0.4, z: 2, w: 12, h: 0.8, d: 30, color: 0x3A3F44, beacon: false });
-  block(scene, { x: 0, y: 2.0, z: -2, w: 3, h: 4, d: 38, color: 0x2C4256, beaconColor: PALETTE.firefly }); // train
+  // Start platform — set BESIDE the track (centreline x≈0) with a clear gap. The
+  // waiting train is added dynamically (see Train), not as a static block here.
+  block(scene, { x: 8, y: 0.4, z: 2, w: 11, h: 0.8, d: 30, color: 0x3A3F44, beacon: false });
 
-  // Creative Origins station (ember accent), slightly +X per the look targets.
-  block(scene, { x: 4, y: 0.4, z: -190, w: 18, h: 0.8, d: 34, color: 0x33383D, beacon: false });
-  block(scene, { x: 9, y: 2.5, z: -190, w: 6, h: 5, d: 10, color: 0x394A57, beaconColor: PALETTE.ember });
+  // Creative Origins station (ember accent) — platform on the +X side (gap ~3).
+  block(scene, { x: 10, y: 0.4, z: -190, w: 14, h: 0.8, d: 34, color: 0x33383D, beacon: false });
+  block(scene, { x: 13, y: 2.5, z: -190, w: 6, h: 5, d: 10, color: 0x394A57, beaconColor: PALETTE.ember });
 
-  // Unilever station (steel-blue accent), offset LEFT (−X) where the train banks.
-  block(scene, { x: -6, y: 0.4, z: -295, w: 16, h: 0.8, d: 30, color: 0x33383D, beacon: false });
-  block(scene, { x: -10, y: 2.5, z: -295, w: 6, h: 5, d: 10, color: 0x394A57, beaconColor: PALETTE.haze });
+  // Unilever station (steel-blue accent) — platform on the −X side of its track
+  // (track at x≈−5, platform beyond it, gap ~1) where the train banks left.
+  block(scene, { x: -10.5, y: 0.4, z: -295, w: 9, h: 0.8, d: 30, color: 0x33383D, beacon: false });
+  block(scene, { x: -13, y: 2.5, z: -295, w: 6, h: 5, d: 10, color: 0x394A57, beaconColor: PALETTE.haze });
 
-  // Finale tree (trunk + layered canopy), where the merged track ends.
+  // Finale: the train STOPS beside the tree; a small step-down platform bridges
+  // from the train (x≈2) toward the great tree (x≈7.5). The track does NOT run
+  // into the tree — you step down and walk beneath the canopy.
+  block(scene, { x: 4.5, y: 0.3, z: -367, w: 6, h: 0.6, d: 7, color: 0x33383D, beacon: false });
+
   const trunk = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.9, 1.4, 9, 10),
+    new THREE.CylinderGeometry(1.1, 1.7, 12, 12),
     new THREE.MeshStandardMaterial({ color: 0x4A3A2E, roughness: 0.95 })
   );
-  trunk.position.set(7, 4.5, -372);
+  trunk.position.set(7.5, 6, -373);
   scene.add(trunk);
   const canopy = new THREE.Mesh(
-    new THREE.ConeGeometry(6.5, 11, 12),
+    new THREE.SphereGeometry(7.5, 16, 12),
     new THREE.MeshStandardMaterial({ color: 0x2E4034, roughness: 0.9 })
   );
-  canopy.position.set(7, 12, -372);
+  canopy.position.set(7.5, 13.5, -373);
+  canopy.scale.set(1, 0.78, 1);
   scene.add(canopy);
-  scene.add(beaconAt(7, 19, -372, PALETTE.firefly, 0.9, 2.6));
+  scene.add(beaconAt(7.5, 20, -373, PALETTE.firefly, 0.9, 2.6));
 }
 
 // ---- §5.1 track topology (grey-box) -----------------------------------------
@@ -142,12 +147,12 @@ function addTrack(scene) {
   const Y = 0.25; // rails sit just above the ground
 
   // Main line + the left branch the train actually takes, on through Unilever
-  // and down to the Y junction.
+  // and down to the Y junction (extends back under the waiting train at the start).
   rail(scene, [
-    [0, Y, 14], [0, Y, -60], [0, Y, -130], [0, Y, -185],   // start → Creative Origins
+    [0, Y, 42], [0, Y, 6], [0, Y, -60], [0, Y, -130], [0, Y, -185], // start → Creative
     [0, Y, -235],                                            // V junction
-    [-2, Y, -258], [-5, Y, -292],                            // bank LEFT → Unilever
-    [-5, Y, -308], [-2, Y, -330], [1.5, Y, -341],            // Unilever → Y junction
+    [-3, Y, -262], [-5, Y, -292],                            // bank LEFT → Unilever
+    [-5, Y, -312], [-2, Y, -332], [1.5, Y, -341],            // Unilever → Y junction
   ], { color: PALETTE.haze, radius: 0.38, intensity: 1.3 });
 
   // V junction RIGHT branch — decorative, never used; trails off and fades.
@@ -161,9 +166,10 @@ function addTrack(scene) {
     [0, Y, -185], [9, Y, -225], [11, Y, -285], [7, Y, -320], [3, Y, -338], [1.6, Y, -341],
   ], { color: PALETTE.ember, radius: 0.34, intensity: 1.2 });
 
-  // The MERGED single track: Y junction → finale tree (warmer, the thesis line).
+  // The MERGED single track: Y junction → STOP beside the tree (the thesis line).
+  // It ends at the train's stop (~[2,-363]); the tree at [7.5,-373] is separate.
   rail(scene, [
-    [1.5, Y, -341], [4, Y, -356], [7, Y, -372],
+    [1.5, Y, -341], [2, Y, -356], [2, Y, -363],
   ], { color: PALETTE.cream, radius: 0.42, intensity: 1.7 });
 
   // Junction markers — grey-box switch posts + signal lights.

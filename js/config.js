@@ -26,8 +26,9 @@ export const PALETTE = {
 export const FOG = { color: 0x14202B, density: 0.009 }; // FogExp2 hugging the ground
 export const SKY = { top: 0x0B1622, horizon: 0x1B2E42 };  // dusk gradient dome
 
-// §4 — Post-processing (UnrealBloom)
-export const BLOOM = { strength: 0.85, radius: 0.6, threshold: 0.2 };
+// §4 — Post-processing (UnrealBloom). Threshold nudged up from the spec's 0.2 so
+// the many warm emissive sources glow without blowing out the close station views.
+export const BLOOM = { strength: 0.82, radius: 0.6, threshold: 0.3 };
 
 // §4 — Renderer
 export const RENDER = { exposure: 1.05, maxPixelRatio: 2 };
@@ -56,6 +57,15 @@ export const KEYFRAMES = [
   { t: 0.84, pos: [ 0, 20, -330 ], look: [ 0.0, 1.0,-365 ] }, // bird's-eye over Y junction
   { t: 0.92, pos: [ 2,  3, -360 ], look: [ 7.0, 2.5,-372 ] }, // arriving at tree
   { t: 1.00, pos: [ 4.5,1.7,-366 ], look: [ 7.0, 3.0,-372 ] }, // stepped down, under tree
+];
+
+// §5.1 — the route the train physically travels (rear lead-in → stop beside the
+// tree). Used by Train to drive the loco + carriages along the scroll. The merged
+// track ends at the stop (~[2,-363]); the tree (~[7.5,-373]) stays separate.
+export const TRAIN_PATH = [
+  [0, 0, 42], [0, 0, 6], [0, 0, -60], [0, 0, -130],
+  [0, 0, -185], [0, 0, -235], [-3, 0, -262], [-5, 0, -292],
+  [-5, 0, -312], [-2, 0, -332], [1.5, 0, -341], [2, 0, -356], [2, 0, -363],
 ];
 
 // §5 — Beat labels for the on-screen readout (verification aid this phase).

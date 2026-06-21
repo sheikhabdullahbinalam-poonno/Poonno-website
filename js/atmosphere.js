@@ -159,15 +159,15 @@ export class Atmosphere {
       s.position.set(x, y, z);
       this.scene.add(s);
     };
-    halo(11, 5, -1, PALETTE.firefly, 6, 0.7);
-    halo(11, 5, -15, PALETTE.firefly, 5, 0.6);
-    halo(9, 5, -190, PALETTE.ember, 5, 0.55);
-    halo(-10, 5, -295, PALETTE.firefly, 5, 0.55);
-    halo(7, 9, -372, PALETTE.firefly, 6, 0.6);
+    halo(11, 6, -6, PALETTE.firefly, 3.5, 0.42);
+    halo(11, 6, -18, PALETTE.firefly, 3.0, 0.36);
+    halo(13, 6, -190, PALETTE.ember, 3.5, 0.40);
+    halo(-13, 6, -295, PALETTE.firefly, 3.5, 0.40);
+    halo(7.5, 12, -373, PALETTE.firefly, 4.0, 0.45);
 
-    // A couple of real warm point lights so the glows feel grounded.
-    const l1 = new THREE.PointLight(PALETTE.firefly, 8, 30, 2);
-    l1.position.set(11, 5, -8);
+    // A warm point light so the glows feel grounded (kept modest to avoid blowout).
+    const l1 = new THREE.PointLight(PALETTE.firefly, 3, 24, 2);
+    l1.position.set(11, 6, -10);
     this.scene.add(l1);
   }
 
