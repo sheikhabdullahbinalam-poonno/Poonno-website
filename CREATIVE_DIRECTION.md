@@ -24,7 +24,7 @@
 4. **Static site, served over http for full fidelity.** Build a static site (HTML/CSS/JS, no framework required) and **always preview via a local server** (`python3 -m http.server 8080`), never `file://`. Serving over http unlocks image textures, environment maps, and glTF models — use them freely to maximise detail (the site deploys to GitHub Pages, also http). Organize code into clear modules (e.g. `js/scene/…`, `js/data/…`) or a clearly-sectioned `index.html` — keep it readable.
 5. **Go for detailed, beautiful realism — NOT low-poly.** Use PBR materials, image-based textures (albedo / normal / roughness / metalness), an **environment map** for real reflections, high-quality post-processing (bloom, SSAO if affordable, subtle DOF, grain, vignette), and **glTF models** where they raise quality. Procedural geometry + canvas textures are welcome where they already look great, but you are NOT limited to them. Store textures/models under `assets/` and load with `TextureLoader` / `GLTFLoader` (works because we serve over http). Aim for cinematic, atmospheric beauty held together by Section 4.5.
 6. **Pin the Three.js version** to `0.160.0` via the importmap (already proven). Use only `three` + the addons listed in Section 3.
-7. **Build the production site fresh as `index.html`.** A v1 prototype exists as **`prototype-v1.html`** — use it ONLY as a reference for *interaction logic, data wiring, audio handling, and the scroll→camera mapping* (these already work). Do **NOT** copy its visual style — it is intentionally simplified and this spec targets detailed realism (§4.5). Do not edit or delete `prototype-v1.html`; leave it as a reference. The real site lives in a new `index.html`.
+7. **Build everything from THIS spec only.** All spatial design — tracks, stations, the **V and Y junctions**, scene geometry, camera path, and flow — must come strictly from this document (§5, §5.1, §6). Note especially: **the track is NOT one straight line — it has two junctions (see §5.1).** Do not infer layout from any other file.
 8. **Honor the asset filenames exactly** (Section 2) — they contain spaces; `encodeURI()` them in JS.
 9. **When the whole spec is built and all phases pass**, do a final commit `Phase 9: polish + deploy-ready` and print the deploy steps (Section 14) for the user.
 
@@ -145,6 +145,43 @@ t .92  pos( 2, 3,-360)   look(7, 2.5, -372)  // arriving at tree
 t 1.0  pos( 4.5,1.7,-366)look(7, 3, -372)    // stepped down, under tree
 ```
 Scroll spacer height ≈ `820vh`. `t = scrollTop / (scrollHeight - innerHeight)`.
+
+### 5.1 TRACK TOPOLOGY — build EXACTLY this
+
+There are **TWO junctions**. There is **NOT** one continuous straight track. Build this shape:
+
+```
+            START  (forest platform, the "T" view)
+              │
+              │   main line
+              ▼
+   ┌───────────────────────────┐
+   │   CREATIVE ORIGINS STATION │
+   └───────────────────────────┘
+              │
+              ●  V-JUNCTION  ── the single track splits into a "V".
+             ╱ ╲                The train takes the LEFT branch.
+        LEFT    RIGHT           (RIGHT branch is decorative — it trails
+       branch    branch          off and fades into the fog, never used.)
+          │
+          ▼   (train runs the LEFT branch)
+   ┌───────────────────────────┐
+   │      UNILEVER STATION       │
+   └───────────────────────────┘
+          │ (Unilever line)
+          │                       ╱ (a second rail — the CREATIVE-ORIGINS
+          │                      ╱   line — sweeps in from the side)
+           ╲                    ╱
+            ●  Y-JUNCTION ── the Unilever line and the Creative-Origins
+            │                 line MERGE into ONE single track.
+            ▼   (one merged track)
+   ┌───────────────────────────┐
+   │  FINALE TREE — HORIZONS     │
+   │        CROSSING             │
+   └───────────────────────────┘
+```
+
+Meaning: the **V** (after Creative Origins) is where the journey *branches* and the train banks **left** to Unilever. The **Y** (after Unilever) is where the **creative line and the commercial line become one** and run together to the tree — the visual thesis of the whole site. Both junctions must be clearly visible from the bird's-eye beats (t .58 over the V, t .84 over the Y). Show switch levers + signal lights at each.
 
 ---
 

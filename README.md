@@ -33,7 +33,7 @@ python3 -m http.server 8080
 CREATIVE_DIRECTION.md   # the build bible / spec (for Claude Code)
 HOW_TO_TALK_TO_CLAUDE_CODE.md  # plain-language feedback guide (for you)
 index.html              # the final experience (Claude Code builds this)
-prototype-v1.html       # early prototype — reference only, not the final site
+LICENSE                 # copyright / all-rights-reserved notice
 assets/                 # audio, images, cv, models, textures
 References/              # visual references (livery, cab, stalls, etc.)
 Poonno Signature.svg    # signature logo (loader + nav)
