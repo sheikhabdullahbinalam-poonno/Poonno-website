@@ -1,0 +1,117 @@
+/* ===========================================================================
+   style.css — Phase 1 base styles.
+   The WebGL canvas is fixed full-screen; a tall spacer creates the scroll
+   height that drives progress t. A small HUD reports the current beat (a
+   verification aid for this phase). Colours come from §4.
+   =========================================================================== */
+
+:root {
+  --night:   #0B1622;
+  --dusk:    #1C2E40;
+  --steel:   #2E4255;
+  --haze:    #5C7A99;
+  --firefly: #FFD37A;
+  --ember:   #F4A259;
+  --cream:   #F5EBDC;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--night);
+  color: var(--cream);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Fixed full-viewport render surface */
+#scene {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  display: block;
+  z-index: 0;
+}
+
+/* The scroll spine — its height (≈820vh) is what we scroll through */
+#scroll-spacer {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 820vh;
+  pointer-events: none;
+}
+
+/* Screen-reader-only heading / copy for accessibility + SEO */
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* HUD — current beat + progress (Phase 1 verification aid) */
+#hud {
+  position: fixed;
+  left: 18px;
+  bottom: 16px;
+  z-index: 5;
+  pointer-events: none;
+  user-select: none;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.65);
+}
+#hud-beat {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0.3px;
+  opacity: 0.92;
+}
+#hud-meta {
+  margin-top: 3px;
+  font-size: 11px;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+#hud-hold {
+  margin-left: 6px;
+  color: var(--firefly);
+  font-weight: 600;
+}
+
+/* Scroll hint at the platform */
+#scroll-hint {
+  position: fixed;
+  left: 50%;
+  bottom: 26px;
+  transform: translateX(-50%);
+  z-index: 5;
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--cream);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.8s ease;
+  animation: hintbob 2.4s ease-in-out infinite;
+}
+#scroll-hint.show { opacity: 0.6; }
+
+@keyframes hintbob {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50%      { transform: translateX(-50%) translateY(5px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #scroll-hint { animation: none; }
+}

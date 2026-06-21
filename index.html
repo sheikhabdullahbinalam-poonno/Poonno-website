@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Poonno — A Night-Train Story</title>
+  <meta name="description" content="Sheikh Abdullah Bin Alam (Poonno) — athlete, creative director, and commercial leader, told as a scroll-driven night-train journey." />
+
+  <!-- Fonts: Fraunces (headings), Inter (UI/body), Sacramento (script fallback) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600&family=Sacramento&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/style.css" />
+
+  <!-- Three.js 0.160.0 (pinned) + addons, via importmap -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <!-- Real heading + copy for accessibility / SEO (visually hidden) -->
+  <h1 class="visually-hidden">Poonno — a night-train journey through three windows: athlete, creative director, and commercial leader.</h1>
+
+  <!-- WebGL render surface -->
+  <canvas id="scene"></canvas>
+
+  <!-- Beat / progress readout (verification aid for Phase 1) -->
+  <div id="hud" aria-hidden="true">
+    <div id="hud-beat">Platform arrival</div>
+    <div id="hud-meta"><span id="hud-t">t 0.000</span><span id="hud-hold"></span></div>
+  </div>
+
+  <!-- Scroll hint on the platform -->
+  <div id="scroll-hint" aria-hidden="true">scroll to travel ↓</div>
+
+  <!-- Tall spacer: scrolling through it drives progress t (0 → 1) -->
+  <div id="scroll-spacer"></div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
