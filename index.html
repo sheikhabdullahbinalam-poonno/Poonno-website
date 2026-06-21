@@ -30,14 +30,46 @@
   <!-- WebGL render surface -->
   <canvas id="scene"></canvas>
 
-  <!-- Beat / progress readout (verification aid for Phase 1) -->
-  <div id="hud" aria-hidden="true">
+  <!-- Atmosphere overlays (film grain + vignette) -->
+  <div id="grain" aria-hidden="true"></div>
+  <div id="vignette" aria-hidden="true"></div>
+
+  <!-- Nav bar (revealed after Enter) -->
+  <nav id="nav" class="nav-hidden" aria-label="Primary">
+    <a id="nav-logo" href="#top" aria-label="Poonno — back to top">
+      <span class="sig-mask" role="img" aria-label="Poonno"></span>
+    </a>
+    <button id="whistle-rope" type="button" aria-label="Pull the whistle rope">
+      <span class="rope-line"></span>
+      <span class="rope-handle"></span>
+    </button>
+    <div id="nav-links">
+      <a id="cv-link" href="assets/cv/Sheikh_Abdullah_CV_2026.pdf" download>Download CV</a>
+      <button class="nav-jump" type="button" data-t="0.40">Creative Origins</button>
+      <button class="nav-jump" type="button" data-t="0.66">Unilever Station</button>
+      <button class="nav-jump" type="button" data-t="1.0">Horizons Crossing</button>
+      <button id="mute-btn" type="button" aria-label="Mute sound" aria-pressed="false">
+        <span class="mute-ico">♪</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Beat / progress readout (debug aid — hidden by default, toggle with 'h') -->
+  <div id="hud" class="hud-hidden" aria-hidden="true">
     <div id="hud-beat">Platform arrival</div>
     <div id="hud-meta"><span id="hud-t">t 0.000</span><span id="hud-hold"></span></div>
   </div>
 
-  <!-- Scroll hint on the platform -->
+  <!-- Scroll hint on the platform (shown after Enter) -->
   <div id="scroll-hint" aria-hidden="true">scroll to travel ↓</div>
+
+  <!-- Loader + Enter gate (covers the scene until first tap) -->
+  <div id="loader">
+    <div id="loader-inner">
+      <div id="loader-sig" aria-hidden="true"></div>
+      <button id="enter-btn" class="enter-hidden" type="button">tap to begin <span class="note">♪</span></button>
+    </div>
+  </div>
 
   <!-- Tall spacer: scrolling through it drives progress t (0 → 1) -->
   <div id="scroll-spacer"></div>

@@ -1,9 +1,9 @@
 // ============================================================================
 //  main.js — engine + render loop.
-//  Sets up the WebGL renderer (ACES tone mapping), scene, camera and the bloom
-//  post-processing chain; builds the grey-box world; maps scroll position to a
-//  normalized progress t (0→1); and on each frame damps the camera along the
-//  §5 keyframe spline and updates the beat readout.
+//  Renderer (ACES tone mapping) + bloom; builds the grey-box world and the
+//  living atmosphere (fireflies / fog / pointer field); maps scroll → progress
+//  t (0→1); wires the loader/Enter gate, audio and nav; and each frame damps the
+//  camera along the §5 keyframes, stirs the atmosphere, and renders.
 // ============================================================================
 
 import * as THREE from 'three';
@@ -15,6 +15,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { BLOOM, RENDER, CAMERA, BEATS } from './config.js';
 import { buildWorld } from './world.js';
 import { CameraRig } from './camera-rig.js';
+import { Atmosphere } from './atmosphere.js';
+import { AudioManager } from './audio.js';
+import { initUI } from './ui.js';
+
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // --- renderer ----------------------------------------------------------------
 const canvas = document.getElementById('scene');
@@ -33,6 +38,8 @@ const camera = new THREE.PerspectiveCamera(
 
 buildWorld(scene);
 const rig = new CameraRig(camera);
+const atmosphere = new Atmosphere(scene, camera);
+const audio = new AudioManager();
 
 // --- post-processing: bloom --------------------------------------------------
 const composer = new EffectComposer(renderer);
@@ -53,14 +60,17 @@ function readScroll() {
 window.addEventListener('scroll', readScroll, { passive: true });
 readScroll();
 
-// --- HUD (beat + progress readout) -------------------------------------------
+function goTo(tt) {
+  const max = document.documentElement.scrollHeight - window.innerHeight;
+  window.scrollTo({ top: max * Math.min(1, Math.max(0, tt)), behavior: REDUCED ? 'auto' : 'smooth' });
+}
+
+// --- HUD (debug, hidden unless toggled with 'h') -----------------------------
 const hudBeat = document.getElementById('hud-beat');
 const hudT = document.getElementById('hud-t');
 const hudHold = document.getElementById('hud-hold');
 const scrollHint = document.getElementById('scroll-hint');
 let lastLabel = '';
-
-setTimeout(() => scrollHint.classList.add('show'), 1200);
 window.addEventListener('scroll', () => {
   if (window.scrollY > 40) scrollHint.classList.remove('show');
 }, { passive: true });
@@ -69,6 +79,13 @@ function beatAt(tt) {
   for (const b of BEATS) if (tt >= b.t0 && tt <= b.t1) return b;
   return BEATS[BEATS.length - 1];
 }
+
+// --- whistle camera shudder (skipped under reduced motion) -------------------
+let shudder = 0;
+function onWhistle() { if (!REDUCED) shudder = 0.22; }
+
+// --- UI: loader / Enter / audio / nav ---------------------------------------
+initUI({ audio, goTo, onWhistle });
 
 // --- resize ------------------------------------------------------------------
 window.addEventListener('resize', () => {
@@ -84,9 +101,15 @@ window.addEventListener('resize', () => {
 const clock = new THREE.Clock();
 function animate() {
   requestAnimationFrame(animate);
-  const dt = Math.min(clock.getDelta(), 0.05); // clamp to stay stable on stalls
+  const dt = Math.min(clock.getDelta(), 0.05);
 
   rig.update(t, dt);
+  if (shudder > 0.001) {
+    shudder *= Math.exp(-dt * 6);
+    camera.position.x += (Math.random() - 0.5) * shudder;
+    camera.position.y += (Math.random() - 0.5) * shudder;
+  }
+  atmosphere.update(dt);
 
   const b = beatAt(t);
   if (b.label !== lastLabel) { hudBeat.textContent = b.label; lastLabel = b.label; }
@@ -97,10 +120,10 @@ function animate() {
 }
 animate();
 
-// Expose for verification: jump (with damping) or snap (instant) to a beat.
+// Verification helpers: jump (damped) or snap (instant) to a beat.
 window.__poonno = {
-  goTo(tt) { window.scrollTo(0, (document.documentElement.scrollHeight - window.innerHeight) * tt); },
-  snapTo(tt) { this.goTo(tt); t = tt; rig.snap(tt); },
+  goTo,
+  snapTo(tt) { goTo(tt); t = Math.min(1, Math.max(0, tt)); rig.snap(t); },
 };
 
 // Honor ?t=<0..1> on load so screenshots can target a specific beat instantly.
