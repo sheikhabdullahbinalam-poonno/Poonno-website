@@ -10,8 +10,6 @@ const CREAM = '#F5EBDC';
 export function initUI({ audio, goTo, onWhistle }) {
   const loader = document.getElementById('loader');
   const sigBox = document.getElementById('loader-sig');
-  const bar = document.getElementById('loader-bar');
-  const barFill = document.getElementById('loader-bar-fill');
   const enterBtn = document.getElementById('enter-btn');
   const nav = document.getElementById('nav');
   const scrollHint = document.getElementById('scroll-hint');
@@ -22,8 +20,7 @@ export function initUI({ audio, goTo, onWhistle }) {
   let entered = false;
   let canEnter = false;
 
-  runLoader(sigBox, barFill).then(() => {
-    bar.classList.add('bar-done');
+  runLoader(sigBox).then(() => {
     setTimeout(() => {
       canEnter = true;
       enterBtn.classList.remove('enter-hidden');
@@ -75,45 +72,53 @@ export function initUI({ audio, goTo, onWhistle }) {
   });
 }
 
-// Show the signature, then fill a progress bar left→right; it tops out only once
-// the scene is actually ready (window.__poonno), so it's a real load indicator.
-async function runLoader(sigBox, barFill) {
-  await injectSignature(sigBox);
-  if (REDUCED) { barFill.style.width = '100%'; return; }
+// The signature "writes" itself left→right (a soft glowing pen tip leads the
+// reveal). It holds near the end until the scene is ready, so the writing also
+// serves as the load-progress indicator.
+async function runLoader(sigBox) {
+  const svg = await injectSignature(sigBox);
+
+  const tip = document.createElement('div');
+  tip.className = 'sig-tip';
+  sigBox.appendChild(tip);
+
+  if (!svg || REDUCED) { if (svg) svg.style.clipPath = 'none'; tip.remove(); return; }
+
+  svg.style.clipPath = 'inset(0 100% 0 0)'; // fully hidden, revealed from the left
 
   let ready = false;
   (function poll() { if (window.__poonno) ready = true; else setTimeout(poll, 80); })();
 
+  const DUR = 1800;
   const start = performance.now();
   await new Promise((resolve) => {
     function frame(now) {
-      const timed = easeOutCubic(Math.min(1, (now - start) / 1300));
-      const cap = ready ? 1 : 0.92;          // hold at 92% until the scene is ready
-      const fill = Math.min(cap, timed);
-      barFill.style.width = (fill * 100).toFixed(1) + '%';
-      if (fill >= 0.999 && ready) resolve();
+      const timed = easeInOut(Math.min(1, (now - start) / DUR));
+      const cap = ready ? 1 : 0.9;            // hold near the end until ready
+      const r = Math.min(cap, timed);
+      svg.style.clipPath = `inset(0 ${((1 - r) * 100).toFixed(2)}% 0 0)`;
+      tip.style.left = (r * sigBox.clientWidth).toFixed(1) + 'px';
+      tip.style.opacity = (r > 0.02 && r < 0.985) ? '1' : '0';
+      if (r >= 0.999 && ready) { tip.style.opacity = '0'; setTimeout(() => tip.remove(), 300); resolve(); }
       else requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);
   });
 }
 
-async function injectSignature(container) {
+async function injectSignature(sigBox) {
   try {
     const res = await fetch('assets/img/Poonno%20Signature.svg');
     if (!res.ok) throw new Error('fetch failed');
-    container.innerHTML = await res.text();
-    const svg = container.querySelector('svg');
-    const path = container.querySelector('path');
+    sigBox.innerHTML = await res.text();
+    const svg = sigBox.querySelector('svg');
+    const path = sigBox.querySelector('path');
     if (path) path.style.fill = CREAM;
-    if (svg) {
-      svg.style.opacity = '0';
-      svg.style.transition = 'opacity 0.8s ease';
-      requestAnimationFrame(() => { svg.style.opacity = '1'; });
-    }
+    return svg;
   } catch (e) {
-    container.innerHTML = '<div style="font-family:Sacramento,cursive;font-size:64px;color:' + CREAM + '">Poonno</div>';
+    sigBox.innerHTML = '<div style="font-family:Sacramento,cursive;font-size:64px;color:' + CREAM + '">Poonno</div>';
+    return null;
   }
 }
 
-const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);

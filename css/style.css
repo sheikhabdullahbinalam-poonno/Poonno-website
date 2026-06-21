@@ -214,26 +214,23 @@ body {
   align-items: center;
   gap: 20px;
 }
-#loader-sig { width: 300px; max-width: 70vw; }
+#loader-sig { position: relative; width: 300px; max-width: 70vw; }
 #loader-sig svg { width: 100%; height: auto; display: block; }
 
-/* Simple one-directional progress bar (also the load indicator) */
-#loader-bar {
-  width: 240px;
-  max-width: 62vw;
-  height: 2px;
-  margin-top: -4px;
-  background: rgba(245, 235, 220, 0.14);
-  border-radius: 2px;
-  overflow: hidden;
-  transition: opacity 0.5s ease;
-}
-#loader-bar.bar-done { opacity: 0; }
-#loader-bar-fill {
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg, var(--firefly), var(--ember));
-  box-shadow: 0 0 10px rgba(255, 211, 122, 0.6);
+/* Glowing "pen tip" that leads the left-to-right writing reveal */
+.sig-tip {
+  position: absolute;
+  top: 52%;
+  left: 0;
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, var(--firefly) 45%, rgba(255, 211, 122, 0) 72%);
+  box-shadow: 0 0 14px 5px rgba(255, 211, 122, 0.7);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
 }
 
 #enter-btn {
