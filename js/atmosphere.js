@@ -119,7 +119,8 @@ export class Atmosphere {
   // ---- fog sprites that drift in from the sides ---------------------------
   _buildFog() {
     this.fogSprites = [];
-    const make = (x, y, z, scl, vz, zHalf, op) => {
+    // zCenter = the Z the sprite drifts around (so fade/wrap are local, not at 0).
+    const make = (x, y, zCenter, z, scl, vz, zHalf, op) => {
       const m = new THREE.SpriteMaterial({
         map: this.fog, color: new THREE.Color(PALETTE.haze),
         transparent: true, opacity: op, depthWrite: false,
@@ -128,7 +129,7 @@ export class Atmosphere {
       const s = new THREE.Sprite(m);
       s.scale.set(scl, scl * 0.6, 1);
       s.position.set(x, y, z);
-      s.userData = { vz, baseY: y, baseX: x, phase: Math.random() * 6.28, zHalf, baseOp: op };
+      s.userData = { vz, baseY: y, phase: Math.random() * 6.28, zCenter, zHalf, baseOp: op };
       this.scene.add(s);
       this.fogSprites.push(s);
     };
@@ -136,13 +137,13 @@ export class Atmosphere {
     for (let i = 0; i < 6; i++) {
       const dir = i % 2 ? 1 : -1;
       make(2 + (Math.random() * 16 - 8), 2 + Math.random() * 2.5,
-           (Math.random() * 36 - 18), 18 + Math.random() * 10,
+           0, (Math.random() * 36 - 18), 18 + Math.random() * 10,
            dir * (1.4 + Math.random() * 1.2), 20, 0.20);
     }
     // A little ambient drift at each station + the tree.
-    make(4, 2.5, -190, 20, 1.3, 18, 0.16);
-    make(-6, 2.5, -295, 20, -1.3, 18, 0.16);
-    make(7, 3.5, -372, 16, 1.0, 14, 0.14);
+    make(4, 2.5, -190, -190, 20, 1.3, 18, 0.16);
+    make(-6, 2.5, -295, -295, 20, -1.3, 18, 0.16);
+    make(7, 3.5, -372, -372, 16, 1.0, 14, 0.14);
   }
 
   // ---- warm lamp glows (halos now; real fixtures arrive Phase 3) ----------
@@ -243,11 +244,12 @@ export class Atmosphere {
     // away from the pointer.
     for (const f of this.fogSprites) {
       const d = f.userData;
+      const span = d.zHalf + 18;
       f.position.z += d.vz * dt;
-      if (d.vz > 0 && f.position.z > d.baseX + d.zHalf + 18) f.position.z = -d.zHalf - 18;
-      if (d.vz < 0 && f.position.z < -d.zHalf - 18) f.position.z = d.zHalf + 18;
+      if (d.vz > 0 && f.position.z > d.zCenter + span) f.position.z = d.zCenter - span;
+      if (d.vz < 0 && f.position.z < d.zCenter - span) f.position.z = d.zCenter + span;
       f.position.y = d.baseY + Math.sin(t * 0.3 + d.phase) * 0.4;
-      const fade = Math.max(0, 1 - Math.abs(f.position.z) / (d.zHalf + 6));
+      const fade = Math.max(0, 1 - Math.abs(f.position.z - d.zCenter) / (d.zHalf + 6));
       let op = d.baseOp * fade;
       if (interact) {
         const dx = f.position.x - pw.x, dz = f.position.z - pw.z;
