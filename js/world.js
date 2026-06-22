@@ -19,6 +19,64 @@ export function buildWorld(scene) {
   addForest(scene);
   addLandmarks(scene);
   addTrack(scene);
+  addNameplates(scene);
+}
+
+// ---- station nameplates (§6.6, ref Name plate.webp): yellow board, dark bold
+//      text, on blue posts; emissive so it reads at night, facing the viewer ----
+function addNameplates(scene) {
+  // Positioned on each beat's sightline so the full text reads in frame.
+  scene.add(makeNameplate('CREATIVE ORIGINS', 10.2, 3.0, -190, 4.6, -182, 5.5));
+  scene.add(makeNameplate('UNILEVER STATION', -12, 3.0, -293, -7, -289, 6));
+  scene.add(makeNameplate('HORIZONS CROSSING', 6.8, 3.4, -371, 4.6, -366, 5));
+}
+
+function makeNameplate(name, px, py, pz, faceX, faceZ, w = 6) {
+  const g = new THREE.Group();
+  const tex = nameplateTex(name);
+  const h = w * 160 / 512; // match the 512×160 canvas ratio
+
+  const board = new THREE.Mesh(
+    new THREE.PlaneGeometry(w, h),
+    new THREE.MeshStandardMaterial({
+      map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.5,
+      roughness: 0.6, metalness: 0, side: THREE.DoubleSide,
+    })
+  );
+  board.position.y = py;
+  g.add(board);
+
+  const postMat = new THREE.MeshStandardMaterial({ color: 0x2E5A86, roughness: 0.6, metalness: 0.2 });
+  const postTop = py + h / 2;
+  for (const sx of [-w * 0.32, w * 0.32]) {
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.12, postTop, 8), postMat);
+    post.position.set(sx, postTop / 2, 0);
+    g.add(post);
+  }
+
+  g.position.set(px, 0, pz);
+  g.rotation.y = Math.atan2(faceX - px, faceZ - pz); // face the viewer's vantage
+  return g;
+}
+
+function nameplateTex(name) {
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 160;
+  const g = c.getContext('2d');
+  g.fillStyle = '#E9B330'; g.fillRect(0, 0, 512, 160);          // yellow board
+  g.strokeStyle = '#16202E'; g.lineWidth = 7; g.strokeRect(11, 11, 490, 138); // dark border
+  g.lineWidth = 2; g.strokeRect(22, 22, 468, 116);
+  g.fillStyle = '#16202E';
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  if ('letterSpacing' in g) g.letterSpacing = '3px';
+  let fs = 60;
+  g.font = `700 ${fs}px Georgia, 'Times New Roman', serif`;
+  while (g.measureText(name).width > 430 && fs > 20) { fs -= 2; g.font = `700 ${fs}px Georgia, serif`; }
+  g.fillText(name, 256, 84);
+  const t = new THREE.CanvasTexture(c);
+  t.anisotropy = 8;
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
 }
 
 // ---- mystical conifer forest lining the route (instanced for performance) ---
@@ -148,7 +206,7 @@ function addLandmarks(scene) {
 
   // Creative Origins station (ember accent) — platform on the +X side (gap ~3).
   block(scene, { x: 10, y: 0.4, z: -190, w: 14, h: 0.8, d: 34, color: 0x33383D, beacon: false });
-  block(scene, { x: 13, y: 2.5, z: -190, w: 6, h: 5, d: 10, color: 0x394A57, beaconColor: PALETTE.ember });
+  block(scene, { x: 16, y: 2.5, z: -190, w: 6, h: 5, d: 10, color: 0x394A57, beaconColor: PALETTE.ember });
 
   // Unilever station (steel-blue accent) — platform on the −X side of its track
   // (track at x≈−5, platform beyond, gap ~1) where the train banks left. The
@@ -156,10 +214,10 @@ function addLandmarks(scene) {
   block(scene, { x: -13, y: 0.4, z: -295, w: 14, h: 0.8, d: 30, color: 0x33383D, beacon: false });
   block(scene, { x: -18, y: 2.2, z: -295, w: 6, h: 4, d: 10, color: 0x394A57, beaconColor: PALETTE.haze });
 
-  // Finale: the train STOPS beside the tree; a small step-down platform bridges
-  // from the train (x≈2) toward the great tree (x≈7.5). The track does NOT run
-  // into the tree — you step down and walk beneath the canopy.
-  block(scene, { x: 4.5, y: 0.3, z: -367, w: 6, h: 0.6, d: 7, color: 0x33383D, beacon: false });
+  // Finale: a step-down platform bridges from the train's stop (z≈-352, behind
+  // the camera) forward to the great tree (z≈-373), so you walk down and beneath
+  // the canopy with the train left behind, out of view.
+  block(scene, { x: 5, y: 0.3, z: -362, w: 5, h: 0.6, d: 22, color: 0x33383D, beacon: false });
 
   const trunk = new THREE.Mesh(
     new THREE.CylinderGeometry(1.1, 1.7, 12, 12),
@@ -205,10 +263,11 @@ function addTrack(scene) {
     [0, Y, -185], [9, Y, -225], [11, Y, -285], [7, Y, -320], [3, Y, -338], [1.6, Y, -341],
   ], { color: PALETTE.ember, radius: 0.34, intensity: 1.2 });
 
-  // The MERGED single track: Y junction → STOP beside the tree (the thesis line).
-  // It ends at the train's stop (~[2,-363]); the tree at [7.5,-373] is separate.
+  // The MERGED single track: Y junction → STOP (the thesis line). The stop sits
+  // well BEHIND the final camera (~[2,-352]) so the train is out of the finale
+  // shot; the viewer steps forward to the separate tree at [7.5,-373].
   rail(scene, [
-    [1.5, Y, -341], [2, Y, -356], [2, Y, -363],
+    [1.5, Y, -341], [2, Y, -348], [2, Y, -352],
   ], { color: PALETTE.cream, radius: 0.42, intensity: 1.7 });
 
   // Junction markers — grey-box switch posts + signal lights.
