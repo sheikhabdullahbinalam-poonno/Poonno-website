@@ -178,6 +178,23 @@ body {
 }
 #hud-hold { margin-left: 6px; color: var(--firefly); font-weight: 600; }
 
+/* ---- Scroll progress rail ---------------------------------------------- */
+#progress {
+  position: fixed; right: 20px; top: 50%; transform: translateY(-50%);
+  width: 2px; height: 230px; z-index: 6;
+  background: rgba(245, 235, 220, 0.12); border-radius: 2px;
+}
+#progress-fill {
+  position: absolute; top: 0; left: 0; width: 100%; height: 0%;
+  background: linear-gradient(var(--firefly), var(--ember));
+  box-shadow: 0 0 8px rgba(255, 211, 122, 0.7); border-radius: 2px;
+}
+#progress .ptick {
+  position: absolute; left: 50%; width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px;
+  border-radius: 50%; background: rgba(245, 235, 220, 0.4);
+}
+@media (max-width: 720px) { #progress { display: none; } }
+
 /* ---- Scroll hint -------------------------------------------------------- */
 #scroll-hint {
   position: fixed;
@@ -565,6 +582,34 @@ html.has-cursor, html.has-cursor * { cursor: none !important; }
 @media (prefers-reduced-motion: reduce) {
   .contact-kicker, .contact-head, .contact-sub, .contact-links, .site-footer { transition: opacity 0.5s ease; transform: none; }
 }
+
+/* ===========================================================================
+   Phase 9 — mobile hamburger nav + no-WebGL fallback
+   =========================================================================== */
+#nav-burger { display: none; background: none; border: 0; color: var(--cream); font-size: 22px; line-height: 1; cursor: pointer; opacity: 0.85; }
+@media (max-width: 720px) {
+  #nav-burger { display: block; }
+  #nav-links {
+    position: absolute; top: 100%; right: 14px; margin-top: 8px;
+    flex-direction: column; align-items: flex-end; gap: 16px;
+    background: rgba(11, 22, 34, 0.96);
+    border: 1px solid rgba(245, 235, 220, 0.15); border-radius: 12px;
+    padding: 0 22px; max-height: 0; overflow: hidden; opacity: 0; pointer-events: none;
+    transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+  }
+  #nav-links.open { max-height: 340px; opacity: 1; pointer-events: auto; padding: 18px 22px; }
+}
+
+#no-webgl { position: fixed; inset: 0; z-index: 500; display: flex; align-items: center; justify-content: center; padding: 24px; background: radial-gradient(ellipse at 50% 40%, #14283c, #070e16); }
+#no-webgl[hidden] { display: none; }
+.nw-inner { text-align: center; max-width: 480px; color: var(--cream); }
+.nw-mark { font-family: 'Sacramento', cursive; font-size: 58px; color: var(--cream); }
+.nw-inner p { font-size: 15px; line-height: 1.6; opacity: 0.82; margin: 14px 0 24px; }
+.nw-cv { display: inline-block; font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--cream); border: 1px solid rgba(245, 235, 220, 0.35); border-radius: 999px; padding: 11px 22px; text-decoration: none; }
+.nw-cv:hover { border-color: var(--ember); color: var(--ember); }
+.nw-links { display: flex; gap: 18px; justify-content: center; margin-top: 22px; }
+.nw-links a { font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--haze); text-decoration: none; }
+.nw-links a:hover { color: var(--ember); }
 
 /* ---- Small screens ------------------------------------------------------ */
 @media (max-width: 720px) {

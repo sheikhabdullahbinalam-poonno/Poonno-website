@@ -6,6 +6,21 @@
   <title>Poonno — A Night-Train Story</title>
   <meta name="description" content="Sheikh Abdullah Bin Alam (Poonno) — athlete, creative director, and commercial leader, told as a scroll-driven night-train journey." />
 
+  <!-- Favicon (from the signature) + theme -->
+  <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
+  <meta name="theme-color" content="#0B1622" />
+
+  <!-- Open Graph / Twitter share card (firefly title card) -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Poonno — A Night-Train Story" />
+  <meta property="og:description" content="A night train carries you through three windows — athlete, creative director, commercial leader — to where the tracks become one." />
+  <meta property="og:image" content="https://iampoonno.com/assets/img/og-image.png" />
+  <meta property="og:url" content="https://iampoonno.com/" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Poonno — A Night-Train Story" />
+  <meta name="twitter:description" content="A scroll-driven night-train journey through Poonno's creative, commercial, and athletic worlds." />
+  <meta name="twitter:image" content="https://iampoonno.com/assets/img/og-image.png" />
+
   <!-- Fonts: Fraunces (headings), Inter (UI/body), Sacramento (script fallback) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -30,6 +45,20 @@
   <!-- WebGL render surface -->
   <canvas id="scene"></canvas>
 
+  <!-- Fallback when WebGL is unavailable -->
+  <div id="no-webgl" hidden>
+    <div class="nw-inner">
+      <div class="nw-mark">Poonno</div>
+      <p>This immersive experience needs WebGL, which isn't available in this browser. Here's how to reach me in the meantime.</p>
+      <a class="nw-cv" href="assets/cv/Sheikh_Abdullah_CV_2026.pdf" download>Download CV</a>
+      <div class="nw-links">
+        <a href="https://www.linkedin.com/in/poonno/" target="_blank" rel="noopener">LinkedIn</a>
+        <a href="https://wa.me/8801844681862" target="_blank" rel="noopener">WhatsApp</a>
+        <a href="mailto:Sheikhabdullahbinalam@gmail.com">Email</a>
+      </div>
+    </div>
+  </div>
+
   <!-- Atmosphere overlays (film grain + vignette) -->
   <div id="grain" aria-hidden="true"></div>
   <div id="vignette" aria-hidden="true"></div>
@@ -43,6 +72,7 @@
       <span class="rope-line"></span>
       <span class="rope-handle"></span>
     </button>
+    <button id="nav-burger" type="button" aria-label="Menu" aria-expanded="false">&#9776;</button>
     <div id="nav-links">
       <a id="cv-link" href="assets/cv/Sheikh_Abdullah_CV_2026.pdf" download>Download CV</a>
       <button class="nav-jump" type="button" data-t="0.40">Creative Origins</button>
@@ -62,6 +92,15 @@
 
   <!-- Scroll hint on the platform (shown after Enter) -->
   <div id="scroll-hint" aria-hidden="true">scroll to travel ↓</div>
+
+  <!-- Scroll progress rail with ticks at the stations -->
+  <div id="progress" aria-hidden="true">
+    <div id="progress-fill"></div>
+    <i class="ptick" style="top:16%"></i>
+    <i class="ptick" style="top:46%"></i>
+    <i class="ptick" style="top:79%"></i>
+    <i class="ptick" style="top:96%"></i>
+  </div>
 
   <!-- Cab click-guidance (Phase 4) -->
   <div id="cab-hint" class="cab-hint" aria-hidden="true">Two things in here know Poonno best — give them a tap.</div>

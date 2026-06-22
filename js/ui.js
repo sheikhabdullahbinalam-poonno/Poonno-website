@@ -66,6 +66,18 @@ export function initUI({ audio, goTo, onWhistle }) {
   syncMute();
   muteBtn.addEventListener('click', () => { audio.toggleMute(); syncMute(); });
 
+  // ---- mobile hamburger ----------------------------------------------------
+  const burger = document.getElementById('nav-burger');
+  const navLinks = document.getElementById('nav-links');
+  if (burger && navLinks) {
+    burger.addEventListener('click', () => {
+      const open = navLinks.classList.toggle('open');
+      burger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    navLinks.querySelectorAll('a, button').forEach((b) =>
+      b.addEventListener('click', () => { navLinks.classList.remove('open'); burger.setAttribute('aria-expanded', 'false'); }));
+  }
+
   // ---- HUD toggle (debug) --------------------------------------------------
   window.addEventListener('keydown', (e) => {
     if (e.key === 'h' || e.key === 'H') document.getElementById('hud').classList.toggle('hud-hidden');

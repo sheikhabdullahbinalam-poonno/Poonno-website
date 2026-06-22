@@ -30,6 +30,19 @@ import { initFinale, updateFinale } from './finale.js';
 
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+// --- no-WebGL fallback -------------------------------------------------------
+function webglOK() {
+  try {
+    const c = document.createElement('canvas');
+    return !!(window.WebGLRenderingContext && (c.getContext('webgl') || c.getContext('experimental-webgl')));
+  } catch (e) { return false; }
+}
+if (!webglOK()) {
+  const nw = document.getElementById('no-webgl'); if (nw) nw.hidden = false;
+  const ld = document.getElementById('loader'); if (ld) ld.style.display = 'none';
+  throw new Error('WebGL unavailable — showing fallback');
+}
+
 // --- renderer ----------------------------------------------------------------
 const canvas = document.getElementById('scene');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -101,6 +114,7 @@ const hudBeat = document.getElementById('hud-beat');
 const hudT = document.getElementById('hud-t');
 const hudHold = document.getElementById('hud-hold');
 const scrollHint = document.getElementById('scroll-hint');
+const progFill = document.getElementById('progress-fill');
 let lastLabel = '';
 window.addEventListener('scroll', () => {
   if (window.scrollY > 40) scrollHint.classList.remove('show');
@@ -191,6 +205,7 @@ function animate() {
   if (b.label !== lastLabel) { hudBeat.textContent = b.label; lastLabel = b.label; }
   hudT.textContent = 't ' + t.toFixed(3);
   hudHold.textContent = b.hold ? 'HOLD' : '';
+  if (progFill) progFill.style.height = (t * 100).toFixed(1) + '%';
 
   composer.render();
 }
