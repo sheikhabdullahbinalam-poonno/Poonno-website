@@ -37,12 +37,12 @@ body {
   z-index: 0;
 }
 
-/* The scroll spine — its height (≈820vh) is what we scroll through */
+/* The scroll spine — its height is what we scroll through (long forest journey) */
 #scroll-spacer {
   position: relative;
   z-index: 1;
   width: 100%;
-  height: 820vh;
+  height: 1100vh;
   pointer-events: none;
 }
 

@@ -20,11 +20,11 @@ const _v = new THREE.Vector3();
 // Firefly clusters: [center, half-extents, weight]. Last entry scatters motes
 // thinly along the whole track so the air feels alive everywhere.
 const HUBS = [
-  { c: [3, 3.5, 0],     r: [18, 5, 20],  w: 0.40 }, // platform (densest)
-  { c: [4, 3.5, -190],  r: [16, 5, 18],  w: 0.17 }, // creative origins
-  { c: [-6, 3.5, -295], r: [16, 5, 18],  w: 0.17 }, // unilever
-  { c: [7, 6, -372],    r: [12, 8, 12],  w: 0.12 }, // finale tree
-  { c: [0, 4, -185],    r: [11, 6, 360], w: 0.14 }, // scattered along track
+  { c: [3, 3.5, 0],      r: [18, 5, 20],  w: 0.32 }, // platform (densest)
+  { c: [10, 3.5, -340],  r: [16, 5, 18],  w: 0.15 }, // creative origins
+  { c: [-12, 3.5, -720], r: [16, 5, 18],  w: 0.15 }, // unilever
+  { c: [7, 6, -825],     r: [12, 8, 12],  w: 0.10 }, // finale tree
+  { c: [0, 4, -400],     r: [12, 6, 420], w: 0.28 }, // scattered along the long route
 ];
 
 export class Atmosphere {
@@ -141,14 +141,14 @@ export class Atmosphere {
            dir * (1.3 + Math.random() * 1.2), 22, 0.26);
     }
     // Ambient drift at each station + the tree.
-    make(10, 2.5, -190, -190, 24, 1.3, 18, 0.22);
-    make(-13, 2.5, -295, -295, 24, -1.3, 18, 0.22);
-    make(7.5, 3.5, -373, -373, 18, 1.0, 14, 0.16);
-    // Low ground mist drifting along the whole route (mystical depth).
-    for (let i = 0; i < 12; i++) {
-      const z = -18 - i * 30 + (Math.random() * 16 - 8);
+    make(10, 2.5, -340, -340, 24, 1.3, 18, 0.22);
+    make(-13, 2.5, -720, -720, 24, -1.3, 18, 0.22);
+    make(7.5, 3.5, -825, -825, 18, 1.0, 14, 0.16);
+    // Low ground mist drifting along the whole (long) route — mystical depth.
+    for (let i = 0; i < 26; i++) {
+      const z = -18 - i * 31 + (Math.random() * 16 - 8);
       const dir = i % 2 ? 1 : -1;
-      make((Math.random() < 0.5 ? -1 : 1) * (4 + Math.random() * 14), 1.6 + Math.random() * 2,
+      make((Math.random() < 0.5 ? -1 : 1) * (5 + Math.random() * 16), 1.6 + Math.random() * 2,
            z, z + (Math.random() * 24 - 12), 22 + Math.random() * 12,
            dir * (0.8 + Math.random()), 26, 0.15);
     }
@@ -169,14 +169,14 @@ export class Atmosphere {
     };
     halo(11, 6, -6, PALETTE.firefly, 3.5, 0.42);
     halo(11, 6, -18, PALETTE.firefly, 3.0, 0.36);
-    halo(13, 6, -190, PALETTE.ember, 3.5, 0.40);
-    halo(-13, 6, -295, PALETTE.firefly, 3.5, 0.40);
-    halo(7.5, 12, -373, PALETTE.firefly, 4.0, 0.45);
+    halo(11, 6, -340, PALETTE.ember, 3.5, 0.40);
+    halo(-11, 6, -720, PALETTE.firefly, 3.5, 0.40);
+    halo(7.5, 12, -825, PALETTE.firefly, 4.0, 0.45);
 
-    // A warm point light so the glows feel grounded (kept modest to avoid blowout).
-    const l1 = new THREE.PointLight(PALETTE.firefly, 3, 24, 2);
-    l1.position.set(11, 6, -10);
-    this.scene.add(l1);
+    // Warm point lights so the platform + stations read (lit, not dark walls).
+    const l1 = new THREE.PointLight(PALETTE.firefly, 3, 24, 2); l1.position.set(11, 6, -10); this.scene.add(l1);
+    const cl = new THREE.PointLight(0xFFCF8C, 22, 32, 2); cl.position.set(9, 6, -340); this.scene.add(cl);
+    const ul = new THREE.PointLight(0xFFCF8C, 22, 32, 2); ul.position.set(-11, 6, -720); this.scene.add(ul);
   }
 
   // ---- pointer glow trail + light -----------------------------------------

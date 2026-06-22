@@ -27,8 +27,8 @@ export class Train {
     this.gapU = CAR_SPACING / this.total;
 
     this.uWait = this._findU(0, -10);
-    this.uCreative = this._findU(0, -185);
-    this.uUnilever = this._findU(-5, -292);
+    this.uCreative = this._findU(0, -340);
+    this.uUnilever = this._findU(-5, -720);
     this.uTree = 1.0;
 
     this.cars = [];
@@ -63,9 +63,9 @@ export class Train {
     if (t < 0.22) return W;
     if (t < 0.40) return lerp(W, C, ease((t - 0.22) / 0.18));
     if (t < 0.52) return C;
-    if (t < 0.66) return lerp(C, U, ease((t - 0.52) / 0.14));
-    if (t < 0.78) return U;
-    return lerp(U, T, ease((t - 0.78) / 0.22));
+    if (t < 0.74) return lerp(C, U, ease((t - 0.52) / 0.22));
+    if (t < 0.84) return U;
+    return lerp(U, T, ease((t - 0.84) / 0.16));
   }
 
   update(t, dt) {
