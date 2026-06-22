@@ -90,5 +90,5 @@ export const TRAIN_PATH = [
   [0, 0, -400],                                                     // V junction
   [-3, 0, -432], [-5, 0, -490], [-5, 0, -650], [-5, 0, -720],       // bank LEFT → Unilever
   [-5, 0, -745], [-2, 0, -772], [1.5, 0, -789],                     // Unilever → Y junction
-  [2, 0, -797], [2, 0, -800],                                       // stop (behind final camera)
+  [2, 0, -791.5], [2, 0, -793],                                     // stop BEHIND the final camera (z−800)
 ];

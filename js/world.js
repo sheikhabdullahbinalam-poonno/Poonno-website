@@ -187,9 +187,9 @@ function addLandmarks(scene) {
   block(scene, { x: -13, y: 0.4, z: -720, w: 14, h: 0.8, d: 30, color: 0x33383D, beacon: false });
   block(scene, { x: -18, y: 2.2, z: -720, w: 6, h: 4, d: 10, color: 0x394A57, beaconColor: PALETTE.haze });
 
-  // Finale: a step-down platform bridges from the train's stop (z≈−800, behind
+  // Finale: a step-down platform bridges from the train's stop (z≈−793, behind
   // the camera) forward to the great tree (z≈−825). No station here — just the tree.
-  block(scene, { x: 5, y: 0.3, z: -812, w: 5, h: 0.6, d: 26, color: 0x33383D, beacon: false });
+  block(scene, { x: 5, y: 0.3, z: -809, w: 5, h: 0.6, d: 34, color: 0x33383D, beacon: false });
   const trunk = new THREE.Mesh(
     new THREE.CylinderGeometry(1.1, 1.7, 12, 12),
     new THREE.MeshStandardMaterial({ color: 0x4A3A2E, roughness: 0.95 })
@@ -215,8 +215,8 @@ function addTrack(scene) {
   buildRealTrack(scene, [[0, -400], [6, -428], [16, -468], [30, -520]]);
   // Creative-Origins line — sweeps out on the +X side and into the Y junction.
   buildRealTrack(scene, [[0, -340], [11, -430], [13, -560], [9, -680], [4, -760], [1.6, -789]]);
-  // Merged single track: Y → stop (behind the final camera).
-  buildRealTrack(scene, [[1.5, -789], [2, -797], [2, -800]]);
+  // Merged single track: Y → stop BEHIND the final camera (so the train is out of the finale shot).
+  buildRealTrack(scene, [[1.5, -789], [2, -791.5], [2, -793]]);
 
   junctionMarker(scene, 0, -400, PALETTE.ember);   // V
   junctionMarker(scene, 1.5, -789, PALETTE.moss);  // Y
