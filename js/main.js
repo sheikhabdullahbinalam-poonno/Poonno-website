@@ -11,6 +11,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 
 import { BLOOM, RENDER, CAMERA, BEATS } from './config.js';
 import { buildWorld } from './world.js';
@@ -57,6 +58,26 @@ const bloomPass = new UnrealBloomPass(
 );
 composer.addPass(bloomPass);
 composer.addPass(new OutputPass());
+
+// Filmic colour-grade + vignette (display-space, after tone mapping) — split-tone
+// warm shadows / cool highlights, gentle contrast, edge darkening.
+const GradeShader = {
+  uniforms: { tDiffuse: { value: null } },
+  vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+  fragmentShader: `
+    varying vec2 vUv; uniform sampler2D tDiffuse;
+    void main(){
+      vec3 c = texture2D(tDiffuse, vUv).rgb;
+      float l = dot(c, vec3(0.299, 0.587, 0.114));
+      vec3 warm = vec3(1.05, 1.0, 0.93), cool = vec3(0.95, 0.99, 1.06);
+      c *= mix(warm, cool, smoothstep(0.15, 0.85, l));   // split-tone
+      c = (c - 0.5) * 1.04 + 0.5;                         // gentle contrast
+      vec2 q = vUv - 0.5;
+      c *= mix(0.86, 1.0, smoothstep(0.95, 0.35, length(q))); // gentle vignette
+      gl_FragColor = vec4(clamp(c, 0.0, 1.0), 1.0);
+    }`,
+};
+composer.addPass(new ShaderPass(GradeShader));
 
 // --- scroll → progress t -----------------------------------------------------
 let t = 0;

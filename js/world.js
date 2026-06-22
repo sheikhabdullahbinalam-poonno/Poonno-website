@@ -9,6 +9,7 @@
 
 import * as THREE from 'three';
 import { PALETTE, FOG, SKY } from './config.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 const RAIL_MATERIAL = new THREE.MeshStandardMaterial({ color: 0x8A929A, metalness: 0.85, roughness: 0.38, envMapIntensity: 1.0 });
 const SLEEPER_MATERIAL = new THREE.MeshStandardMaterial({ color: 0x3A2A1E, roughness: 0.95, metalness: 0.05 });
@@ -51,8 +52,8 @@ function makeSky() {
 
 // ---- moonlit night lighting -------------------------------------------------
 function addLights(scene) {
-  scene.add(new THREE.HemisphereLight(0x44648A, 0x1A2430, 0.9));
-  const moon = new THREE.DirectionalLight(0xBFD2EC, 1.35);
+  scene.add(new THREE.HemisphereLight(0x44648A, 0x1A2430, 1.05));
+  const moon = new THREE.DirectionalLight(0xBFD2EC, 1.5);
   moon.position.set(-40, 70, 25);
   scene.add(moon);
   scene.add(new THREE.AmbientLight(0x18242F, 0.42));
@@ -62,53 +63,67 @@ function addLights(scene) {
 function addGround(scene) {
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(440, 1200),
-    new THREE.MeshStandardMaterial({ color: 0x16242F, roughness: 0.97, metalness: 0.0 })
+    new THREE.MeshStandardMaterial({ color: 0x16242F, roughness: 0.82, metalness: 0.1, envMapIntensity: 0.5 })
   );
   ground.rotation.x = -Math.PI / 2;
   ground.position.set(0, 0, -420);
   scene.add(ground);
 }
 
-// ---- forest: two distinct runs the train passes through ---------------------
+// ---- forest: two distinct runs the train passes through (detailed, not low-poly)
 function addForest(scene) {
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), s = new THREE.Vector3();
-  const coneGeo = new THREE.ConeGeometry(1, 1, 7);
-  const trunkGeo = new THREE.CylinderGeometry(0.16, 0.28, 1.8, 5);
-  const trunkMat = new THREE.MeshStandardMaterial({ color: 0x241B14, roughness: 1 });
-  const coniferMat = new THREE.MeshStandardMaterial({ color: 0x1E3A2E, roughness: 0.95 });
+  const fir = firGeometry();                          // layered fir (base at y0, height ~1)
+  const ball = new THREE.IcosahedronGeometry(1, 2);   // smooth, rounded canopy (not faceted)
+  const trunkA = new THREE.CylinderGeometry(0.14, 0.26, 1.8, 7);
+  const trunkB = new THREE.CylinderGeometry(0.2, 0.36, 1, 7);
+  const trunkMat = new THREE.MeshStandardMaterial({ color: 0x2A1F16, roughness: 1 });
+  const coniferMat = new THREE.MeshStandardMaterial({ color: 0x24433A, roughness: 0.86, metalness: 0 });
+  const leafMat = new THREE.MeshStandardMaterial({ color: 0x405026, roughness: 0.9, metalness: 0 });
 
-  // Run 1 (start → Creative): dense tall CONIFERS, close to the corridor.
-  fill(scene, 440, coneGeo, coniferMat, trunkGeo, trunkMat, (i) => {
+  // Run 1 (start → Creative): dense tall firs close to the corridor.
+  fill(scene, 440, fir, coniferMat, trunkA, trunkMat, () => {
     const side = Math.random() < 0.5 ? -1 : 1;
     const x = side * (8 + Math.random() * 50);
     const z = -8 - Math.random() * 322;
     if (Math.abs(x) < 22 && z < -322) return null;   // keep the Creative platform clear
-    const h = 7 + Math.random() * 13, r = 1.0 + Math.random() * 1.6;
-    return { canopy: [x, 0.7 + h / 2, z, r, h, r], trunk: [x, 0.9, z, 1, 1, 1] };
+    const h = 8 + Math.random() * 13, r = 1.0 + Math.random() * 1.5;
+    return { canopy: [x, 0.8, z, r, h, r], trunk: [x, 0.9, z, 1, 1, 1] };
   }, m, q, p, s);
 
-  // Run 2 (Creative → Unilever): dense ROUNDED BROADLEAF (olive), a different feel.
-  const ballGeo = new THREE.SphereGeometry(1, 8, 6);
-  const leafMat = new THREE.MeshStandardMaterial({ color: 0x3C4A26, roughness: 0.95, flatShading: true });
-  const trunk2Geo = new THREE.CylinderGeometry(0.2, 0.36, 1, 6);
-  fill(scene, 440, ballGeo, leafMat, trunk2Geo, trunkMat, (j) => {
+  // Run 2 (Creative → Unilever): dense smooth rounded broadleaf — a different look.
+  fill(scene, 440, ball, leafMat, trunkB, trunkMat, () => {
     const side = Math.random() < 0.5 ? -1 : 1;
     const x = side * (8 + Math.random() * 50);
     const z = -405 - Math.random() * 300;
     if (x < 0 && Math.abs(x + 5) < 20 && z < -703) return null; // keep Unilever clear
-    const rad = 2.2 + Math.random() * 2.4, hh = 3 + Math.random() * 3;
-    return { canopy: [x, hh + rad * 0.6, z, rad, rad * (0.8 + Math.random() * 0.5), rad], trunk: [x, hh / 2 + 0.2, z, 1, hh, 1] };
+    const rad = 2.4 + Math.random() * 2.6, hh = 3 + Math.random() * 3;
+    return { canopy: [x, hh + rad * 0.5, z, rad, rad * (0.82 + Math.random() * 0.4), rad], trunk: [x, hh / 2 + 0.2, z, 1, hh, 1] };
   }, m, q, p, s);
 
-  // Sparse backdrop conifers elsewhere (behind platforms, distance), finale clear.
-  fill(scene, 140, coneGeo, coniferMat, trunkGeo, trunkMat, () => {
+  // Sparse backdrop firs elsewhere (behind platforms, distance); finale stays open.
+  fill(scene, 150, fir, coniferMat, trunkA, trunkMat, () => {
     const side = Math.random() < 0.5 ? -1 : 1;
     const x = side * (24 + Math.random() * 42);
     const z = 40 - Math.random() * 900;
     if (z < -800 && Math.abs(x) < 30) return null;   // finale: open sky
-    const h = 6 + Math.random() * 8, r = 1 + Math.random();
-    return { canopy: [x, 0.7 + h / 2, z, r, h, r], trunk: [x, 0.9, z, 1, 1, 1] };
+    const h = 7 + Math.random() * 9, r = 1.0 + Math.random();
+    return { canopy: [x, 0.8, z, r, h, r], trunk: [x, 0.9, z, 1, 1, 1] };
   }, m, q, p, s);
+}
+
+// A layered fir built by merging three smooth cones (base at y0, total height ~1).
+let _firGeo = null;
+function firGeometry() {
+  if (_firGeo) return _firGeo;
+  const layers = [{ b: 0.0, r: 1.0, h: 0.55 }, { b: 0.33, r: 0.72, h: 0.48 }, { b: 0.62, r: 0.46, h: 0.4 }];
+  const parts = layers.map((L) => {
+    const c = new THREE.ConeGeometry(L.r, L.h, 12);
+    c.translate(0, L.b + L.h / 2, 0);
+    return c;
+  });
+  _firGeo = mergeGeometries(parts);
+  return _firGeo;
 }
 
 // Place up to `n` trees (canopy InstancedMesh + trunk InstancedMesh) from a spec fn.

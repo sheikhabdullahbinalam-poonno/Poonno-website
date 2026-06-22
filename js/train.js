@@ -94,14 +94,17 @@ function mats() {
   if (M) return M;
   const std = (color, rough, metal, env = 0.7) =>
     new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: metal, envMapIntensity: env });
+  // glossy painted metal (clearcoat) for the loco/carriage bodywork
+  const paint = (color, rough = 0.3) =>
+    new THREE.MeshPhysicalMaterial({ color, roughness: rough, metalness: 0.0, clearcoat: 0.85, clearcoatRoughness: 0.22, envMapIntensity: 1.25 });
   const liv = carriageLivery();
   M = {
-    blue: std(PALETTE.brBlue, 0.38, 0.35),
-    blueDark: std(0x244F77, 0.5, 0.3),
-    cream: std(PALETTE.brCream, 0.6, 0.1),
-    red: std(PALETTE.brRed, 0.45, 0.2),
-    yellow: std(PALETTE.brYellow, 0.5, 0.25),
-    roof: std(0x9AA6AE, 0.7, 0.3),
+    blue: paint(PALETTE.brBlue, 0.32),
+    blueDark: paint(0x244F77, 0.4),
+    cream: std(PALETTE.brCream, 0.55, 0.0, 0.55),
+    red: paint(PALETTE.brRed, 0.4),
+    yellow: std(PALETTE.brYellow, 0.45, 0.3, 0.7),
+    roof: std(0x9AA6AE, 0.6, 0.3, 0.85),
     dark: std(0x14181C, 0.85, 0.2, 0.3),
     wheel: std(0x0C0E11, 0.7, 0.4, 0.3),
     glass: new THREE.MeshStandardMaterial({

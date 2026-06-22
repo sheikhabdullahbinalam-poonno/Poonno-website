@@ -65,9 +65,9 @@ body {
   pointer-events: none;
 }
 #vignette {
-  /* darkened edges to frame the scene */
-  background: radial-gradient(ellipse 80% 80% at 50% 45%,
-              rgba(0,0,0,0) 52%, rgba(4,9,15,0.45) 100%);
+  /* gentle edge darkening (the main vignette is now in the grade pass) */
+  background: radial-gradient(ellipse 85% 85% at 50% 45%,
+              rgba(0,0,0,0) 60%, rgba(4,9,15,0.22) 100%);
 }
 #grain {
   opacity: 0.06;
