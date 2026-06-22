@@ -26,6 +26,7 @@ import { initModals, openModal, closeModal, isOpen } from './modals.js';
 import { initInteraction } from './interaction.js';
 import { initCards, updateCards } from './cards.js';
 import { initCursor } from './cursor.js';
+import { initFinale, updateFinale } from './finale.js';
 
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -138,6 +139,7 @@ initCards({
   onUnlock: () => { document.documentElement.style.overflow = ''; },
 });
 initCursor();
+initFinale();
 
 // --- resize ------------------------------------------------------------------
 window.addEventListener('resize', () => {
@@ -183,6 +185,7 @@ function animate() {
   if (showCab) cab.update(t, dt);
   interaction.update();
   updateCards(t);
+  updateFinale(t);
 
   const b = beatAt(t);
   if (b.label !== lastLabel) { hudBeat.textContent = b.label; lastLabel = b.label; }
