@@ -87,8 +87,8 @@ export function buildCab(scene) {
       const fl = 1.6 + Math.sin(time * 13) * 0.5 + Math.sin(time * 27) * 0.3;
       fire.intensity = Math.max(0.8, fl);
       fireGlow.material.emissiveIntensity = 0.65 + Math.sin(time * 17) * 0.2;
-      // speedometer needle: climbs across the speed beat (t .22 → .30)
-      const sp = clamp01((t - 0.22) / 0.10);
+      // speedometer needle: climbs across the speed beat (t .22 → .29)
+      const sp = clamp01((t - 0.22) / 0.07);
       needle.rotation.z = Math.PI * 0.7 - sp * Math.PI * 1.25;
       // halos pulse
       const pulse = 0.5 + 0.5 * Math.sin(time * 3.0);
@@ -120,18 +120,20 @@ function addBoiler(group) {
     pipe.position.set(CX + 1.1, CY + 0.2, CZ - 2.0 + off); pipe.rotation.z = 0.4; group.add(pipe);
   }
 
-  // two small pressure gauges
-  gauge(group, CX + 0.9, CY + 0.7, CZ - 1.3, 0.28, 'PSI', -0.5);
-  gauge(group, CX + 1.05, CY + 0.4, CZ - 1.0, 0.22, 'BAR', 0.4);
+  // two small pressure gauges (backlit so they read at night)
+  gauge(group, CX + 0.9, CY + 0.7, CZ - 1.3, 0.28, 'PSI', -0.5, true);
+  gauge(group, CX + 1.05, CY + 0.4, CZ - 1.0, 0.22, 'BAR', 0.4, true);
 
-  // large speedometer with an animated needle (returned)
-  const dial = gauge(group, CX + 0.75, CY + 0.05, CZ - 0.5, 0.45, 'KM/H', 0.0);
-  const needle = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.4, 0.02),
-    new THREE.MeshStandardMaterial({ color: 0xE85A40, emissive: 0xE85A40, emissiveIntensity: 0.7 }));
-  needle.geometry.translate(0, 0.16, 0);
-  needle.position.copy(dial.position); needle.position.x += 0.03;
+  // large backlit speedometer with an animated needle (returned)
+  const dial = gauge(group, CX + 0.75, CY + 0.05, CZ - 0.5, 0.45, 'KM/H', 0.0, true);
+  // Needle is a CHILD of the dial so it lies in the dial's plane and sweeps across
+  // its face (rotating about the dial normal), not in a perpendicular plane.
+  const needle = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.42, 0.02),
+    new THREE.MeshStandardMaterial({ color: 0xE85A40, emissive: 0xE85A40, emissiveIntensity: 1.1 }));
+  needle.geometry.translate(0, 0.17, 0);   // pivot near one end
+  needle.position.set(0, 0, 0.04);          // just in front of the dial face
   needle.rotation.z = Math.PI * 0.7;
-  group.add(needle);
+  dial.add(needle);
 
   // red-handled levers / throttle
   for (const lz of [-0.4, 0.1]) {
@@ -144,9 +146,11 @@ function addBoiler(group) {
   return needle;
 }
 
-function gauge(group, x, y, z, r, label, ry) {
-  const face = new THREE.Mesh(new THREE.CircleGeometry(r, 24),
-    new THREE.MeshStandardMaterial({ map: gaugeTex(label), roughness: 0.5, metalness: 0.1 }));
+function gauge(group, x, y, z, r, label, ry, lit = false) {
+  const tex = gaugeTex(label);
+  const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.5, metalness: 0.1 });
+  if (lit) { mat.emissive = new THREE.Color(0xF0DFB0); mat.emissiveMap = tex; mat.emissiveIntensity = 0.55; }
+  const face = new THREE.Mesh(new THREE.CircleGeometry(r, 24), mat);
   face.position.set(x, y, z); face.rotation.y = -Math.PI / 2 + ry; group.add(face);
   const ring = new THREE.Mesh(new THREE.TorusGeometry(r, 0.035, 8, 24),
     new THREE.MeshStandardMaterial({ color: 0xB8893B, metalness: 0.9, roughness: 0.3 }));

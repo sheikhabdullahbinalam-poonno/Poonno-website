@@ -48,9 +48,10 @@ export const KEYFRAMES = [
   { t: 0.05, pos: [5, 2.3, 6],      look: [0.0, 2.0, -2] },    // board
   { t: 0.12, pos: [0, 1.9, -12],    look: [-2.6, 1.8, -13.6] },// cab → shelf + poster (HOLD start)
   { t: 0.22, pos: [0, 1.9, -12],    look: [2.0, 1.4, -15] },   // cab pan → gauges (HOLD end)
-  { t: 0.27, pos: [5, 4.5, -40],    look: [0.0, 3.0, -95] },   // gaining speed, dropping low
-  { t: 0.33, pos: [7, 6, -150],     look: [1.0, 3.5, -205] },  // through forest run 1
-  { t: 0.38, pos: [7, 6, -265],     look: [1.0, 3.5, -315] },  // forest run 1 → approach
+  { t: 0.27, pos: [-0.3, 2.0, -13.0], look: [0.75, 2.05, -13.5] }, // PUSH toward the speedometer (inside, needle climbs)
+  { t: 0.31, pos: [2, 7, -34],      look: [0.0, 3.0, -85] },    // lift up & out toward bird's-eye
+  { t: 0.35, pos: [7, 6, -150],     look: [1.0, 3.5, -205] },   // through forest run 1
+  { t: 0.39, pos: [7, 6, -275],     look: [1.0, 3.5, -320] },   // forest run 1 → approach
   { t: 0.40, pos: [4.6, 2.6, -337], look: [10.0, 2.2, -342] }, // Creative Origins (HOLD start)
   { t: 0.52, pos: [4.6, 2.6, -338], look: [10.0, 2.2, -343] }, // Creative Origins (HOLD end)
   { t: 0.56, pos: [0, 9, -372],     look: [-3.0, 3.0, -402] }, // rise over V
@@ -70,8 +71,8 @@ export const BEATS = [
   { t0: 0.00, t1: 0.05, label: 'Platform arrival',      hold: true  },
   { t0: 0.05, t1: 0.12, label: 'Board the train',       hold: false },
   { t0: 0.12, t1: 0.22, label: "Driver's compartment",  hold: true  },
-  { t0: 0.22, t1: 0.27, label: 'Gaining speed',         hold: false },
-  { t0: 0.27, t1: 0.40, label: 'Through the forest',    hold: false },
+  { t0: 0.22, t1: 0.31, label: 'Gaining speed',         hold: false },
+  { t0: 0.31, t1: 0.40, label: 'Through the forest',    hold: false },
   { t0: 0.40, t1: 0.52, label: 'Creative Origins',      hold: true  },
   { t0: 0.52, t1: 0.59, label: 'Re-board & rise',       hold: false },
   { t0: 0.59, t1: 0.63, label: 'V junction — bank left',hold: false },

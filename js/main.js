@@ -91,6 +91,14 @@ function beatAt(tt) {
 let shudder = 0;
 function onWhistle() { if (!REDUCED) shudder = 0.22; }
 
+// train-jerk amplitude across the gaining-speed beat: rises with "speed", then
+// settles before the bird's-eye lift (§5.1, t .22 → .31).
+function jerkAmp(tt) {
+  if (tt < 0.22 || tt > 0.31) return 0;
+  if (tt < 0.285) return (tt - 0.22) / 0.065;
+  return Math.max(0, 1 - (tt - 0.285) / 0.025);
+}
+
 let frozen = null; // debug camera freeze (set via window.__poonno.freeze)
 
 // --- UI: loader / Enter / audio / nav ---------------------------------------
@@ -128,12 +136,20 @@ function animate() {
       camera.position.x += (Math.random() - 0.5) * shudder;
       camera.position.y += (Math.random() - 0.5) * shudder;
     }
+    // train-jerk: rhythmic vertical + lateral jolts (~0.45s beat) rising with speed
+    const ja = jerkAmp(t);
+    if (ja > 0.001 && !REDUCED) {
+      const ph = (performance.now() / 450) * Math.PI * 2;
+      camera.position.y += Math.sin(ph) * 0.10 * ja;
+      camera.position.x += Math.sin(ph * 0.5 + 1.2) * 0.06 * ja;
+    }
   }
   train.update(t, dt);
-  audio.setRumbleLevel(0.4 + 0.5 * train.speed); // idle rumble + swell with speed
+  // idle rumble + swell with the train's speed, boosted through the speed beat
+  audio.setRumbleLevel(Math.min(1, 0.4 + 0.42 * train.speed + 0.35 * jerkAmp(t)));
   atmosphere.update(dt);
 
-  const showCab = t > 0.10 && t < 0.31; // the cab "set" exists only while inside it
+  const showCab = t > 0.10 && t < 0.30; // the cab "set" exists only while inside it
   cab.group.visible = showCab;
   if (showCab) cab.update(t, dt);
   interaction.update();
