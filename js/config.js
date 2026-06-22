@@ -46,8 +46,8 @@ export const CAMERA = { fov: 55, near: 0.1, far: 5000, damp: 3.0 };
 export const KEYFRAMES = [
   { t: 0.00, pos: [12, 2.6, 4],     look: [0.0, 2.2, 2] },     // "T" view arrival (HOLD)
   { t: 0.05, pos: [5, 2.3, 6],      look: [0.0, 2.0, -2] },    // board
-  { t: 0.12, pos: [0, 1.9, -12],    look: [-2.2, 1.7, -15] },  // cab (HOLD start)
-  { t: 0.22, pos: [0, 1.9, -12],    look: [2.2, 1.4, -15] },   // cab pan (HOLD end)
+  { t: 0.12, pos: [0, 1.9, -12],    look: [-2.6, 1.8, -13.6] },// cab → shelf + poster (HOLD start)
+  { t: 0.22, pos: [0, 1.9, -12],    look: [2.0, 1.4, -15] },   // cab pan → gauges (HOLD end)
   { t: 0.27, pos: [5, 4.5, -40],    look: [0.0, 3.0, -95] },   // gaining speed, dropping low
   { t: 0.33, pos: [7, 6, -150],     look: [1.0, 3.5, -205] },  // through forest run 1
   { t: 0.38, pos: [7, 6, -265],     look: [1.0, 3.5, -315] },  // forest run 1 → approach

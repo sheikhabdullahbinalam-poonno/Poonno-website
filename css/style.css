@@ -264,6 +264,136 @@ body {
   #scroll-hint, #enter-btn, #grain { animation: none; }
 }
 
+/* ===========================================================================
+   Phase 4 — cab click-guidance + designed-card modals
+   =========================================================================== */
+
+/* One-time hint banner + "Tap to explore" labels */
+.cab-hint {
+  position: fixed;
+  left: 50%; bottom: 64px;
+  transform: translateX(-50%) translateY(10px);
+  z-index: 30;
+  padding: 11px 20px;
+  border-radius: 999px;
+  background: rgba(11, 22, 34, 0.7);
+  border: 1px solid rgba(255, 211, 122, 0.3);
+  color: var(--cream);
+  font-size: 13px; letter-spacing: 0.4px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.cab-hint.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+.tap-tip {
+  position: fixed;
+  z-index: 30;
+  transform: translate(-50%, -150%);
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(244, 162, 89, 0.16);
+  border: 1px solid var(--firefly);
+  color: var(--firefly);
+  font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  animation: tipbob 2s ease-in-out infinite;
+}
+.tap-tip.show { opacity: 0.95; }
+@keyframes tipbob { 0%,100% { margin-top: 0; } 50% { margin-top: -5px; } }
+
+/* Modal overlay */
+.modal-root {
+  position: fixed; inset: 0;
+  z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  background: rgba(5, 9, 15, 0.62);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.32s ease;
+}
+.modal-root.open { opacity: 1; pointer-events: auto; }
+
+.modal-card {
+  position: relative;
+  width: min(640px, 94vw);
+  max-height: 86vh;
+  overflow-y: auto;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #15273a 0%, #101d2b 100%);
+  border: 1px solid rgba(245, 235, 220, 0.14);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  transform: translateY(26px) scale(0.98);
+  opacity: 0;
+  transition: transform 0.42s cubic-bezier(.2,.8,.2,1), opacity 0.42s ease;
+}
+.modal-card.in { transform: translateY(0) scale(1); opacity: 1; }
+
+.modal-close {
+  position: absolute; top: 12px; right: 14px;
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(245, 235, 220, 0.2);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--cream);
+  font-size: 20px; line-height: 1; cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+  z-index: 2;
+}
+.modal-close:hover { background: rgba(244, 162, 89, 0.2); border-color: var(--ember); }
+
+.modal-head { padding: 26px 28px 18px; display: flex; align-items: center; gap: 18px; }
+.bb-head { background: linear-gradient(120deg, rgba(244,162,89,0.22), rgba(255,211,122,0.08)); border-bottom: 1px solid rgba(244,162,89,0.3); }
+.bio-head { background: linear-gradient(120deg, rgba(46,66,85,0.5), rgba(244,162,89,0.06)); border-bottom: 1px solid rgba(245,235,220,0.12); }
+.kicker { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--ember); opacity: 0.9; }
+.modal-title { font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 27px; color: var(--cream); margin: 4px 0 0; line-height: 1.15; }
+
+/* #27 jersey motif on the basketball header */
+.jersey-motif {
+  flex: 0 0 auto;
+  width: 58px; height: 64px;
+  display: grid; place-items: center;
+  background: var(--brRed, #B23A2E);
+  color: #F5F5F5;
+  border-radius: 8px 8px 14px 14px;
+  box-shadow: inset 0 6px 0 rgba(255,255,255,0.18), 0 0 16px rgba(255,211,122,0.25);
+  font-family: 'Inter', sans-serif; font-weight: 800; font-size: 26px;
+}
+:root { --brRed: #B23A2E; }
+
+/* Basketball blocks (court-pebble texture behind) */
+.bb { background-image: radial-gradient(circle at 1px 1px, rgba(244,162,89,0.05) 1px, transparent 0); background-size: 9px 9px; }
+.bb-grid { padding: 22px 28px 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px 26px; }
+.bio-body { padding: 22px 30px 30px; }
+
+.blk-h { display: flex; align-items: center; gap: 9px; font-family: 'Fraunces', serif; font-weight: 600; font-size: 15px; color: var(--firefly); margin-bottom: 9px; }
+.blk-ico { width: 20px; height: 20px; color: var(--ember); display: inline-flex; }
+.blk-ico svg { width: 20px; height: 20px; }
+.blk ul { margin: 0; padding-left: 2px; list-style: none; }
+.blk li { position: relative; padding-left: 16px; margin: 5px 0; font-size: 13.5px; line-height: 1.5; color: var(--cream); opacity: 0.9; }
+.blk li::before { content: '·'; position: absolute; left: 4px; color: var(--ember); font-weight: 700; }
+.blk-quote { font-size: 13.5px; line-height: 1.6; color: var(--cream); opacity: 0.92; font-style: italic; margin: 0; }
+.blk:last-child { grid-column: 1 / -1; border-top: 1px solid rgba(245,235,220,0.1); padding-top: 16px; }
+
+.bio-body p { font-size: 14.5px; line-height: 1.66; color: var(--cream); opacity: 0.9; margin: 0 0 13px; }
+.bio-body p.lead { font-family: 'Fraunces', serif; font-size: 18px; opacity: 1; color: var(--firefly); }
+
+@media (max-width: 640px) {
+  .bb-grid { grid-template-columns: 1fr; }
+  .modal-title { font-size: 22px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tap-tip { animation: none; }
+  .modal-card { transition: opacity 0.3s ease; transform: none; }
+}
+
 /* ---- Small screens ------------------------------------------------------ */
 @media (max-width: 720px) {
   #nav { padding: 12px 16px; }

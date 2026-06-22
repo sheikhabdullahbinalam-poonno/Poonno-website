@@ -20,6 +20,9 @@ import { Train } from './train.js';
 import { Atmosphere } from './atmosphere.js';
 import { AudioManager } from './audio.js';
 import { initUI } from './ui.js';
+import { buildCab } from './cab.js';
+import { initModals, openModal, closeModal, isOpen } from './modals.js';
+import { initInteraction } from './interaction.js';
 
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -93,6 +96,12 @@ let frozen = null; // debug camera freeze (set via window.__poonno.freeze)
 // --- UI: loader / Enter / audio / nav ---------------------------------------
 initUI({ audio, goTo, onWhistle });
 
+// --- cab interior + modals + interaction (Phase 4) --------------------------
+const cab = buildCab(scene);
+cab.group.visible = false;
+initModals({ audio, onOpen: (w) => cab.setHover(w), onClose: () => cab.setHover(null) });
+const interaction = initInteraction({ camera, cab, openModal, isModalOpen: isOpen, getT: () => t });
+
 // --- resize ------------------------------------------------------------------
 window.addEventListener('resize', () => {
   const w = window.innerWidth, h = window.innerHeight;
@@ -124,6 +133,11 @@ function animate() {
   audio.setRumbleLevel(0.4 + 0.5 * train.speed); // idle rumble + swell with speed
   atmosphere.update(dt);
 
+  const showCab = t > 0.10 && t < 0.31; // the cab "set" exists only while inside it
+  cab.group.visible = showCab;
+  if (showCab) cab.update(t, dt);
+  interaction.update();
+
   const b = beatAt(t);
   if (b.label !== lastLabel) { hudBeat.textContent = b.label; lastLabel = b.label; }
   hudT.textContent = 't ' + t.toFixed(3);
@@ -137,9 +151,15 @@ animate();
 // camera at an arbitrary pose (debug only).
 window.__poonno = {
   goTo,
-  snapTo(tt) { goTo(tt); t = Math.min(1, Math.max(0, tt)); rig.snap(t); },
+  snapTo(tt) {
+    tt = Math.min(1, Math.max(0, tt));
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    window.scrollTo(0, max * tt); // instant (no smooth-scroll race on the visibility gates)
+    t = tt; rig.snap(t);
+  },
   freeze(px, py, pz, lx, ly, lz) { frozen = { p: new THREE.Vector3(px, py, pz), l: new THREE.Vector3(lx, ly, lz) }; },
   unfreeze() { frozen = null; },
+  openModal, closeModal,
 };
 
 // Honor ?t=<0..1> on load so screenshots can target a specific beat instantly.
