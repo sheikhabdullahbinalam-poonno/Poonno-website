@@ -394,6 +394,126 @@ body {
   .modal-card { transition: opacity 0.3s ease; transform: none; }
 }
 
+/* ===========================================================================
+   Phase 6 — Active-Theory-style glass coverflow cards (warm-skinned)
+   =========================================================================== */
+#cards-root {
+  position: fixed; inset: 0;
+  z-index: 15;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+  --accent: #F4A259;
+}
+#cards-root.show { opacity: 1; }
+#cards-root.show .carousel-nav, #cards-root.show .case-detail.in { pointer-events: auto; }
+
+.carousel {
+  position: absolute; left: 50%; top: 45%;
+  width: 0; height: 0;
+  perspective: 1700px;
+  transition: transform 0.6s cubic-bezier(.2,.8,.2,1), opacity 0.6s ease, filter 0.6s ease;
+}
+#cards-root.detail-open .carousel { transform: translateX(26vw) scale(0.78); opacity: 0.45; filter: blur(1px); }
+#cards-root.detail-open .carousel-nav { opacity: 0; pointer-events: none; }
+
+.at-card {
+  position: absolute; left: 0; top: 0;
+  width: 340px; height: 446px;
+  transform-style: preserve-3d;
+  transition: transform 0.7s cubic-bezier(.2,.8,.2,1), opacity 0.7s ease;
+  cursor: pointer; will-change: transform;
+}
+.at-card-inner {
+  position: absolute; inset: 0;
+  transform-style: preserve-3d;
+  transition: transform 0.3s ease, box-shadow 0.4s ease;
+  clip-path: polygon(0 18px, 18px 0, calc(100% - 18px) 0, 100% 18px, 100% calc(100% - 18px), calc(100% - 18px) 100%, 18px 100%, 0 calc(100% - 18px));
+  background: rgba(18, 30, 44, 0.5);
+  backdrop-filter: blur(13px) saturate(1.1);
+  -webkit-backdrop-filter: blur(13px) saturate(1.1);
+  border: 1px solid rgba(245, 235, 220, 0.14);
+  box-shadow: 0 28px 60px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+.at-card.is-active .at-card-inner {
+  box-shadow: 0 44px 96px rgba(0, 0, 0, 0.55), 0 0 60px -14px var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 45%, rgba(245,235,220,0.2));
+}
+.card-hero {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(130% 100% at 28% 18%, color-mix(in srgb, var(--accent) 60%, transparent), transparent 62%),
+    linear-gradient(165deg, rgba(22, 36, 52, 0.55), rgba(8, 13, 20, 0.92));
+}
+.card-hero::after {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(circle at 70% 80%, rgba(255, 211, 122, 0.18), transparent 45%);
+  animation: heroDrift 7s ease-in-out infinite alternate;
+}
+@keyframes heroDrift { from { transform: translate(0, 0); } to { transform: translate(-8%, -6%); } }
+.card-sheen {
+  position: absolute; inset: -25%; pointer-events: none;
+  background: linear-gradient(115deg, transparent 42%, rgba(255, 255, 255, 0.14) 50%, transparent 58%);
+  transition: transform 0.2s ease;
+}
+.card-edge { position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14); }
+.card-body { position: absolute; left: 0; right: 0; bottom: 0; padding: 24px; }
+.card-brand { font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); opacity: 0.92; }
+.card-title { font-family: 'Fraunces', serif; font-weight: 600; font-size: 23px; line-height: 1.16; color: var(--cream); margin-top: 7px; }
+.card-cue { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--cream); opacity: 0; margin-top: 14px; transition: opacity 0.3s ease; }
+.at-card.is-active .card-cue { opacity: 0.6; }
+
+.carousel-nav { position: absolute; left: 0; right: 0; bottom: 9%; display: flex; align-items: center; justify-content: center; gap: 26px; transition: opacity 0.5s ease; }
+.car-name { font-family: 'Space Mono', monospace; font-size: 13px; letter-spacing: 4px; color: var(--cream); min-width: 300px; text-align: center; }
+.car-prev, .car-next { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; font-size: 24px; line-height: 1; color: var(--cream); background: rgba(245,235,220,0.04); border: 1px solid rgba(245, 235, 220, 0.25); cursor: pointer; transition: all 0.25s ease; }
+.car-prev:hover, .car-next:hover { border-color: var(--accent); color: var(--accent); transform: scale(1.1); }
+
+.card-mote {
+  position: absolute; left: 50%; top: 45%; width: 6px; height: 6px; border-radius: 50%;
+  background: radial-gradient(circle, #fff, var(--accent) 50%, transparent 72%);
+  box-shadow: 0 0 12px var(--accent); pointer-events: none;
+  animation: cardMote 0.7s ease-out forwards;
+}
+@keyframes cardMote {
+  from { transform: translate(-50%, -50%); opacity: 1; }
+  to { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))); opacity: 0; }
+}
+
+.case-detail {
+  position: absolute; left: 44px; bottom: 44px; width: min(440px, 44vw);
+  opacity: 0; transform: translateY(22px); pointer-events: none;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.case-detail.in { opacity: 1; transform: none; pointer-events: auto; }
+.case-close { font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 2px; color: var(--cream); background: none; border: 0; cursor: pointer; opacity: 0.7; padding: 0 0 14px; }
+.case-close:hover { color: var(--accent); }
+.case-meta { font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 3px; color: var(--accent); }
+.case-title { font-family: 'Fraunces', serif; font-weight: 600; font-size: 30px; color: var(--cream); margin: 6px 0 2px; }
+.case-sub { font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; color: var(--cream); opacity: 0.7; }
+.case-blocks { margin-top: 16px; max-height: 42vh; overflow-y: auto; padding-right: 6px; }
+.case-block { padding: 11px 0; border-top: 1px solid rgba(245, 235, 220, 0.12); }
+.case-block-h { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); opacity: 0.85; }
+.case-block-b { font-size: 13px; line-height: 1.55; color: var(--cream); opacity: 0.88; margin-top: 4px; }
+.case-links { display: flex; gap: 16px; margin-top: 16px; flex-wrap: wrap; }
+.case-link { font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--cream); border-bottom: 1px solid var(--accent); padding-bottom: 3px; text-decoration: none; }
+.case-link:hover { color: var(--accent); }
+
+@media (max-width: 720px) {
+  .at-card { width: 260px; height: 350px; }
+  .case-detail { left: 16px; right: 16px; bottom: 16px; width: auto; }
+}
+
+/* ---- custom cursor (AT-style) ---- */
+#cursor, #cursor-dot { position: fixed; left: 0; top: 0; pointer-events: none; z-index: 300; }
+#cursor { width: 30px; height: 30px; margin: -15px 0 0 -15px; border: 1px solid rgba(245, 235, 220, 0.5); border-radius: 50%; transition: width 0.2s ease, height 0.2s ease, margin 0.2s ease, background 0.2s ease, border-color 0.2s ease; }
+#cursor.hot { width: 56px; height: 56px; margin: -28px 0 0 -28px; border-color: var(--firefly); background: rgba(255, 211, 122, 0.08); }
+#cursor.down { width: 22px; height: 22px; margin: -11px 0 0 -11px; }
+#cursor-dot { width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; border-radius: 50%; background: var(--cream); }
+@media (hover: none), (prefers-reduced-motion: reduce) { #cursor, #cursor-dot { display: none; } }
+/* hide the native cursor only while the custom one is active */
+html.has-cursor, html.has-cursor * { cursor: none !important; }
+
 /* ---- Small screens ------------------------------------------------------ */
 @media (max-width: 720px) {
   #nav { padding: 12px 16px; }
