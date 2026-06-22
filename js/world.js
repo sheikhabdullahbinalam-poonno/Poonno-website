@@ -39,7 +39,7 @@ function makeNameplate(name, px, py, pz, faceX, faceZ, w = 6) {
   const board = new THREE.Mesh(
     new THREE.PlaneGeometry(w, h),
     new THREE.MeshStandardMaterial({
-      map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.5,
+      map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.22,
       roughness: 0.6, metalness: 0, side: THREE.DoubleSide,
     })
   );
@@ -150,14 +150,16 @@ function makeSky() {
 
 // ---- cool hemisphere + dim warmish-cool moon directional --------------------
 function addLights(scene) {
-  const hemi = new THREE.HemisphereLight(0x3A5A7A, PALETTE.night, 0.65);
+  // Moonlit night: cool hemisphere + a brighter moon so PBR liveries actually
+  // read, with warm lamp accents added per-location (platform/stations).
+  const hemi = new THREE.HemisphereLight(0x44648A, 0x1A2430, 0.9);
   scene.add(hemi);
 
-  const moon = new THREE.DirectionalLight(0xAFC4E0, 0.6);
+  const moon = new THREE.DirectionalLight(0xBFD2EC, 1.35);
   moon.position.set(-40, 70, 25);
   scene.add(moon);
 
-  scene.add(new THREE.AmbientLight(0x16222F, 0.35)); // lift the deepest shadows
+  scene.add(new THREE.AmbientLight(0x18242F, 0.42)); // lift the deepest shadows
 }
 
 // ---- ground + faint grid (grid helps perceive camera motion this phase) -----
@@ -203,6 +205,32 @@ function addLandmarks(scene) {
   // Start platform — set BESIDE the track (centreline x≈0) with a clear gap. The
   // waiting train is added dynamically (see Train), not as a static block here.
   block(scene, { x: 8, y: 0.4, z: 2, w: 11, h: 0.8, d: 30, color: 0x3A3F44, beacon: false });
+
+  // Platform canopy — a flat roof on posts (§6.1), framing the "T" view overhead.
+  const canMat = new THREE.MeshStandardMaterial({ color: 0x39454F, roughness: 0.85, metalness: 0.15 });
+  const postMat = new THREE.MeshStandardMaterial({ color: 0x2A333C, roughness: 0.8, metalness: 0.3 });
+  const roofSlab = new THREE.Mesh(new THREE.BoxGeometry(11.5, 0.3, 27), canMat);
+  roofSlab.position.set(8, 5.0, 2);
+  scene.add(roofSlab);
+  const fascia = new THREE.Mesh(new THREE.BoxGeometry(11.7, 0.5, 0.3), canMat);
+  fascia.position.set(8, 4.75, -11.4); scene.add(fascia);
+  for (const sx of [4, 12]) {
+    for (const pz of [-10, -2, 6, 14]) {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 4.2, 8), postMat);
+      post.position.set(sx, 2.9, pz);
+      scene.add(post);
+    }
+  }
+  // Warm hanging bulbs under the canopy that actually light the waiting train.
+  const bulbMat = new THREE.MeshStandardMaterial({ color: PALETTE.firefly, emissive: PALETTE.firefly, emissiveIntensity: 2.4 });
+  for (const pz of [-8, 0, 8]) {
+    const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 12), bulbMat);
+    bulb.position.set(6, 4.5, pz);
+    scene.add(bulb);
+    const lamp = new THREE.PointLight(0xFFCF8C, 26, 26, 2);
+    lamp.position.set(5.5, 4.3, pz);
+    scene.add(lamp);
+  }
 
   // Creative Origins station (ember accent) — platform on the +X side (gap ~3).
   block(scene, { x: 10, y: 0.4, z: -190, w: 14, h: 0.8, d: 34, color: 0x33383D, beacon: false });

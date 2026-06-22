@@ -14,6 +14,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 import { BLOOM, RENDER, CAMERA, BEATS } from './config.js';
 import { buildWorld } from './world.js';
+import { makeEnvironment } from './environment.js';
 import { CameraRig } from './camera-rig.js';
 import { Train } from './train.js';
 import { Atmosphere } from './atmosphere.js';
@@ -33,6 +34,7 @@ renderer.outputColorSpace = THREE.SRGBColorSpace;
 
 // --- scene + camera ----------------------------------------------------------
 const scene = new THREE.Scene();
+scene.environment = makeEnvironment(renderer); // dusk IBL + PBR reflections (§9)
 const camera = new THREE.PerspectiveCamera(
   CAMERA.fov, window.innerWidth / window.innerHeight, CAMERA.near, CAMERA.far
 );
@@ -86,6 +88,8 @@ function beatAt(tt) {
 let shudder = 0;
 function onWhistle() { if (!REDUCED) shudder = 0.22; }
 
+let frozen = null; // debug camera freeze (set via window.__poonno.freeze)
+
 // --- UI: loader / Enter / audio / nav ---------------------------------------
 initUI({ audio, goTo, onWhistle });
 
@@ -105,11 +109,16 @@ function animate() {
   requestAnimationFrame(animate);
   const dt = Math.min(clock.getDelta(), 0.05);
 
-  rig.update(t, dt);
-  if (shudder > 0.001) {
-    shudder *= Math.exp(-dt * 6);
-    camera.position.x += (Math.random() - 0.5) * shudder;
-    camera.position.y += (Math.random() - 0.5) * shudder;
+  if (frozen) {
+    camera.position.copy(frozen.p);
+    camera.lookAt(frozen.l);
+  } else {
+    rig.update(t, dt);
+    if (shudder > 0.001) {
+      shudder *= Math.exp(-dt * 6);
+      camera.position.x += (Math.random() - 0.5) * shudder;
+      camera.position.y += (Math.random() - 0.5) * shudder;
+    }
   }
   train.update(t, dt);
   audio.setRumbleLevel(0.4 + 0.5 * train.speed); // idle rumble + swell with speed
@@ -124,10 +133,13 @@ function animate() {
 }
 animate();
 
-// Verification helpers: jump (damped) or snap (instant) to a beat.
+// Verification helpers: jump (damped) or snap (instant) to a beat; freeze the
+// camera at an arbitrary pose (debug only).
 window.__poonno = {
   goTo,
   snapTo(tt) { goTo(tt); t = Math.min(1, Math.max(0, tt)); rig.snap(t); },
+  freeze(px, py, pz, lx, ly, lz) { frozen = { p: new THREE.Vector3(px, py, pz), l: new THREE.Vector3(lx, ly, lz) }; },
+  unfreeze() { frozen = null; },
 };
 
 // Honor ?t=<0..1> on load so screenshots can target a specific beat instantly.
