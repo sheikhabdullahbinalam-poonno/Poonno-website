@@ -54,7 +54,7 @@ function makeSky() {
 function addLights(scene) {
   scene.add(new THREE.HemisphereLight(0x44648A, 0x1A2430, 1.05));
   const moon = new THREE.DirectionalLight(0xBFD2EC, 1.5);
-  moon.position.set(-40, 70, 25);
+  moon.position.set(-150, 420, -250); // soft moonlight from above-front-left
   scene.add(moon);
   scene.add(new THREE.AmbientLight(0x18242F, 0.42));
 }

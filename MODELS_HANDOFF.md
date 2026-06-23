@@ -39,6 +39,23 @@ engine (Three.js r0.160). Follow this and your Blender work won't be wasted.
 - **TL;DR — bake AO: yes (always). Full shadows: only on static pieces, only if
   you want to. Cast shadows on the train: never.**
 
+## 3b. Effects done in CODE — do NOT bake these into the models
+These are applied in the engine (tuned live to the dreamy reference), so just send
+plain geometry + PBR + emissive and I handle the rest:
+- **Refracted / frosted glass + iridescence** — a `MeshPhysicalMaterial`
+  (transmission, IOR, thickness, iridescence) assigned per object **by name**. Tell
+  me which pieces should be glassy (e.g. train, finale tree, station structures).
+  Real refraction is costly, so it's for a few **hero** pieces — not the whole
+  forest (those get cheap fake-translucency).
+- **Bloom** — post-processing, scene-wide; it just needs the glowing parts marked
+  **emissive** in Blender (windows, lamps, firebox, string-lights).
+- **Colored fog / mist** — `scene.fog` + the mist system, controlled in code.
+- **Depth-of-field blur, the colour grade, vignette, dissolve transitions, the
+  moon + birds, lighting** — all code.
+So: model clean geometry, UV-unwrap, base PBR textures, bake AO into base color,
+mark emissive parts. I turn it into glass/iridescent, bloom it, and wrap it in
+colored fog.
+
 ## 4. Poly & performance budget (target 60 fps)
 - Hero pieces (loco, cab, carriage, finale tree) can be detailed: ~20–80k tris each.
 - **Forest: hand me 2–4 tree models** (e.g. 2 conifer variants + 2 broadleaf) — NOT

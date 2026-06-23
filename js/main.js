@@ -18,6 +18,7 @@ import { buildWorld } from './world.js';
 import { makeEnvironment } from './environment.js';
 import { CameraRig } from './camera-rig.js';
 import { Train } from './train.js';
+import { Sky } from './sky.js';
 import { Atmosphere } from './atmosphere.js';
 import { AudioManager } from './audio.js';
 import { initUI } from './ui.js';
@@ -62,6 +63,7 @@ const camera = new THREE.PerspectiveCamera(
 buildWorld(scene);
 const rig = new CameraRig(camera);
 const train = new Train(scene);
+const sky = new Sky(scene);
 const atmosphere = new Atmosphere(scene, camera);
 const audio = new AudioManager();
 
@@ -85,11 +87,15 @@ const GradeShader = {
     void main(){
       vec3 c = texture2D(tDiffuse, vUv).rgb;
       float l = dot(c, vec3(0.299, 0.587, 0.114));
-      vec3 warm = vec3(1.05, 1.0, 0.93), cool = vec3(0.95, 0.99, 1.06);
-      c *= mix(warm, cool, smoothstep(0.15, 0.85, l));   // split-tone
-      c = (c - 0.5) * 1.04 + 0.5;                         // gentle contrast
+      // split-tone: warm-brown shadows, cool highlights (dreamy, Noomo-leaning)
+      vec3 warm = vec3(1.08, 0.99, 0.86), cool = vec3(0.93, 0.98, 1.08);
+      c *= mix(warm, cool, smoothstep(0.12, 0.82, l));
+      // lift the deepest values toward a blue-black floor (no pure black)
+      c = mix(vec3(0.022, 0.030, 0.050), c, smoothstep(0.0, 0.18, l));
+      c = (c - 0.5) * 1.06 + 0.5;                         // gentle contrast
+      c *= 0.98;                                          // deepen a touch
       vec2 q = vUv - 0.5;
-      c *= mix(0.86, 1.0, smoothstep(0.95, 0.35, length(q))); // gentle vignette
+      c *= mix(0.84, 1.0, smoothstep(0.95, 0.33, length(q))); // vignette
       gl_FragColor = vec4(clamp(c, 0.0, 1.0), 1.0);
     }`,
 };
@@ -190,6 +196,7 @@ function animate() {
     }
   }
   train.update(t, dt);
+  sky.update(dt);
   // idle rumble + swell with the train's speed, boosted through the speed beat
   audio.setRumbleLevel(Math.min(1, 0.4 + 0.42 * train.speed + 0.35 * jerkAmp(t)));
   atmosphere.update(dt);
