@@ -120,37 +120,40 @@ export class Atmosphere {
   _buildFog() {
     this.fogSprites = [];
     // zCenter = the Z the sprite drifts around (so fade/wrap are local, not at 0).
+    // fog:false so the mist banks aren't fogged away by scene.fog; a light
+    // moonlit colour + higher opacity so they actually read as fog.
     const make = (x, y, zCenter, z, scl, vz, zHalf, op) => {
       const m = new THREE.SpriteMaterial({
-        map: this.fog, color: new THREE.Color(PALETTE.haze),
-        transparent: true, opacity: op, depthWrite: false,
+        map: this.fog, color: new THREE.Color(0x8AA6C6),
+        transparent: true, opacity: op, depthWrite: false, fog: false,
         blending: THREE.NormalBlending,
       });
       const s = new THREE.Sprite(m);
-      s.scale.set(scl, scl * 0.6, 1);
+      s.scale.set(scl, scl * 0.5, 1);
       s.position.set(x, y, z);
       s.userData = { vz, baseY: y, phase: Math.random() * 6.28, zCenter, zHalf, baseOp: op };
       this.scene.add(s);
       this.fogSprites.push(s);
     };
-    // Platform fog: drifts along ±Z (screen-horizontal in the T-view), wraps.
-    for (let i = 0; i < 8; i++) {
+    // Platform fog: low ground banks drifting along ±Z (screen-horizontal in
+    // T-view) — kept low + lighter so they wreathe the train without veiling it.
+    for (let i = 0; i < 7; i++) {
       const dir = i % 2 ? 1 : -1;
-      make(2 + (Math.random() * 18 - 9), 1.8 + Math.random() * 2.6,
-           0, (Math.random() * 36 - 18), 20 + Math.random() * 12,
-           dir * (1.3 + Math.random() * 1.2), 22, 0.26);
+      make(2 + (Math.random() * 20 - 10), 0.5 + Math.random() * 1.6,
+           0, (Math.random() * 40 - 20), 24 + Math.random() * 14,
+           dir * (1.2 + Math.random() * 1.1), 22, 0.24);
     }
     // Ambient drift at each station + the tree.
-    make(10, 2.5, -340, -340, 24, 1.3, 18, 0.22);
-    make(-13, 2.5, -720, -720, 24, -1.3, 18, 0.22);
-    make(7.5, 3.5, -825, -825, 18, 1.0, 14, 0.16);
-    // Low ground mist drifting along the whole (long) route — mystical depth.
-    for (let i = 0; i < 26; i++) {
-      const z = -18 - i * 31 + (Math.random() * 16 - 8);
+    make(10, 1.8, -340, -340, 30, 1.2, 20, 0.4);
+    make(-13, 1.8, -720, -720, 30, -1.2, 20, 0.4);
+    make(7.5, 2.5, -825, -825, 22, 1.0, 16, 0.34);
+    // Dense low ground mist drifting along the whole route — the mystical depth.
+    for (let i = 0; i < 44; i++) {
+      const z = -42 - i * 18 + (Math.random() * 12 - 6);
       const dir = i % 2 ? 1 : -1;
-      make((Math.random() < 0.5 ? -1 : 1) * (5 + Math.random() * 16), 1.6 + Math.random() * 2,
-           z, z + (Math.random() * 24 - 12), 22 + Math.random() * 12,
-           dir * (0.8 + Math.random()), 26, 0.15);
+      make((Math.random() < 0.5 ? -1 : 1) * (4 + Math.random() * 18), 0.8 + Math.random() * 2.2,
+           z, z + (Math.random() * 20 - 10), 26 + Math.random() * 16,
+           dir * (0.7 + Math.random()), 28, 0.34);
     }
   }
 
@@ -316,9 +319,9 @@ function fogTex() {
   c.width = c.height = 128;
   const g = c.getContext('2d');
   const grd = g.createRadialGradient(64, 64, 4, 64, 64, 64);
-  grd.addColorStop(0.0, 'rgba(180,200,222,0.55)');
-  grd.addColorStop(0.5, 'rgba(150,175,200,0.22)');
-  grd.addColorStop(1.0, 'rgba(140,165,190,0)');
+  grd.addColorStop(0.0, 'rgba(212,226,242,0.9)');
+  grd.addColorStop(0.45, 'rgba(182,202,226,0.45)');
+  grd.addColorStop(1.0, 'rgba(170,194,220,0)');
   g.fillStyle = grd;
   g.fillRect(0, 0, 128, 128);
   const t = new THREE.CanvasTexture(c);

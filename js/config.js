@@ -23,8 +23,8 @@ export const PALETTE = {
 };
 
 // §4 — Atmosphere
-export const FOG = { color: 0x14202B, density: 0.011 };
-export const SKY = { top: 0x0B1622, horizon: 0x1B2E42 };
+export const FOG = { color: 0x33536F, density: 0.013 }; // lighter dusky haze so distance reads as MIST
+export const SKY = { top: 0x0B1622, horizon: 0x294257 };  // horizon lifted to blend with the fog
 
 // §4 — Post-processing (UnrealBloom). Threshold nudged up from the spec's 0.2 so
 // the warm emissive sources glow without blowing out the close station views.
