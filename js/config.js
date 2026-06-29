@@ -65,8 +65,8 @@ export const KEYFRAMES = [
   { t: 0.700, pos: [-6.0, 5.0, -498],look: [-5.0, 15.0, -610] },// smoothly rising toward the moon
   { t: 0.720, pos: [-6.5, 4.8, -535],look: [-5.5, 17.0, -650] },// peak moon-gaze
   { t: 0.740, pos: [-7.0, 4.4, -575],look: [-6.0, 14.0, -695] },// begin descent
-  { t: 0.759, pos: [-7.0, 4.0, -608],look: [-6.5, 10.0, -720] },// returning to level
-  { t: 0.789, pos: [-7.0, 4.0, -660],look: [-7.0, 4.0, -712] },// level gaze, Unilever approach
+  { t: 0.759, pos: [-7.0, 4.0, -612],look: [-6.5, 10.0, -720] },// returning to level
+  { t: 0.789, pos: [-7.0, 3.4, -688],look: [-7.5, 3.0, -714] },// decelerate INTO Unilever (no speed-up-then-stop)
   { t: 0.804, pos: [-7, 2.6, -715],  look: [-11.0, 2.0, -718] },// Unilever Years (HOLD start)
   { t: 0.880, pos: [-7, 2.6, -716],  look: [-11.0, 2.0, -719] },// Unilever Years (HOLD end)
   { t: 0.910, pos: [0, 16, -755],    look: [1.0, 3.0, -792] }, // rise, reveal Y junction
