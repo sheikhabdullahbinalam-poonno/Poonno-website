@@ -570,7 +570,8 @@ html.has-cursor, html.has-cursor * { cursor: none !important; }
 #contact.show .site-footer    { opacity: 0.6; transform: none; transition-delay: 0.85s; }
 
 .contact-kicker { font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 0.42em; text-transform: uppercase; color: var(--firefly); opacity: 0.85; }
-.contact-head { font-family: 'Fraunces', serif; font-weight: 600; font-size: clamp(36px, 6vw, 64px); line-height: 1.05; color: var(--cream); margin: 12px 0 0; }
+/* same pairing as the station-approach overlay: Space Mono kicker + display serif name */
+.contact-head { font-family: var(--font-display); font-weight: 500; font-size: clamp(42px, 7.5vw, 78px); line-height: 0.98; letter-spacing: 0.005em; color: var(--cream); margin: 14px 0 0; }
 .contact-sub { font-family: 'Inter', sans-serif; font-size: 15px; color: var(--cream); opacity: 0.7; margin: 12px 0 0; }
 
 .contact-links { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-top: 28px; }

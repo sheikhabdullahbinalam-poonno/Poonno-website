@@ -108,28 +108,75 @@ export class Sky {
 const ease = (k) => k * k * (3 - 2 * k);
 
 function moonTex() {
-  const s = 256, c = document.createElement('canvas'); c.width = c.height = s;
+  const s = 512, c = document.createElement('canvas'); c.width = c.height = s;
   const g = c.getContext('2d'); const R = s / 2;
-  // base disc with gentle spherical shading (light upper-left)
-  const grd = g.createRadialGradient(R * 0.8, R * 0.76, R * 0.1, R, R, R);
-  grd.addColorStop(0, '#f4f6f9'); grd.addColorStop(0.55, '#e2e7ef');
-  grd.addColorStop(0.9, '#c6cedb'); grd.addColorStop(0.985, '#aeb7c6');
-  grd.addColorStop(1, 'rgba(174,183,198,0)');
-  g.fillStyle = grd; g.beginPath(); g.arc(R, R, R * 0.99, 0, 6.2832); g.fill();
 
-  g.save(); g.beginPath(); g.arc(R, R, R * 0.97, 0, 6.2832); g.clip();
-  // maria (darker seas)
-  g.fillStyle = 'rgba(150,160,180,0.22)';
-  for (const [x, y, r] of [[0.42, 0.40, 0.22], [0.62, 0.58, 0.16], [0.50, 0.67, 0.13], [0.34, 0.60, 0.10], [0.69, 0.35, 0.09]]) {
-    g.beginPath(); g.arc(x * s, y * s, r * s, 0, 6.2832); g.fill();
+  // --- base disc: highlands with spherical shading, light from upper-left.
+  // Deliberately mid-toned (not near-white) so the bloom pass doesn't blow the
+  // whole disc out — the dark maria then read as real lunar seas.
+  const grd = g.createRadialGradient(R * 0.74, R * 0.68, R * 0.05, R, R, R);
+  grd.addColorStop(0.00, '#d7dce4');
+  grd.addColorStop(0.45, '#c2c9d5');
+  grd.addColorStop(0.78, '#a3adbe');
+  grd.addColorStop(0.93, '#828da1');
+  grd.addColorStop(1.00, '#6c7689');
+  g.fillStyle = grd; g.beginPath(); g.arc(R, R, R * 0.995, 0, 6.2832); g.fill();
+
+  g.save(); g.beginPath(); g.arc(R, R, R * 0.985, 0, 6.2832); g.clip();
+
+  // soft-edged dark blob (a mare), built from a radial gradient so edges feather
+  const blob = (x, y, rr, rgb, a) => {
+    const cx = x * s, cy = y * s, r = rr * s;
+    const bg = g.createRadialGradient(cx, cy, r * 0.15, cx, cy, r);
+    bg.addColorStop(0, `rgba(${rgb},${a})`);
+    bg.addColorStop(0.65, `rgba(${rgb},${a * 0.85})`);
+    bg.addColorStop(1, `rgba(${rgb},0)`);
+    g.fillStyle = bg; g.beginPath(); g.arc(cx, cy, r, 0, 6.2832); g.fill();
+  };
+
+  // --- maria: the recognisable near-side pattern ("the man in the moon"),
+  // dark blue-grey seas. Overlapping blobs give irregular, organic shapes.
+  const MARE = '70,80,99';
+  blob(0.34, 0.30, 0.17, MARE, 0.80);  // Mare Imbrium (large, upper-left)
+  blob(0.28, 0.43, 0.13, MARE, 0.72);  // Oceanus Procellarum (left)
+  blob(0.55, 0.32, 0.10, MARE, 0.78);  // Mare Serenitatis
+  blob(0.63, 0.45, 0.11, MARE, 0.80);  // Mare Tranquillitatis
+  blob(0.79, 0.40, 0.066, MARE, 0.82); // Mare Crisium (isolated oval, right)
+  blob(0.71, 0.57, 0.075, MARE, 0.74); // Mare Fecunditatis
+  blob(0.61, 0.63, 0.058, MARE, 0.70); // Mare Nectaris
+  blob(0.43, 0.64, 0.085, MARE, 0.68); // Mare Nubium (lower-left)
+  blob(0.50, 0.50, 0.05, MARE, 0.45);  // faint central tie
+
+  // --- crater field across the brighter highlands: dark pit + lit upper-left
+  // rim + lower-right shadow gives each one a little 3-D relief.
+  for (let i = 0; i < 46; i++) {
+    const x = Math.random() * s, y = Math.random() * s, r = 2 + Math.random() * 8;
+    g.fillStyle = 'rgba(60,68,84,0.30)'; g.beginPath(); g.arc(x + r * 0.18, y + r * 0.18, r, 0, 6.2832); g.fill(); // shadow
+    g.fillStyle = 'rgba(95,104,120,0.40)'; g.beginPath(); g.arc(x, y, r, 0, 6.2832); g.fill();                    // pit
+    g.fillStyle = 'rgba(240,244,250,0.32)'; g.beginPath(); g.arc(x - r * 0.28, y - r * 0.28, r * 0.55, 0, 6.2832); g.fill(); // lit rim
   }
-  // craters — soft dark pit + a faint bright rim
-  for (let i = 0; i < 28; i++) {
-    const x = Math.random() * s, y = Math.random() * s, r = 2 + Math.random() * 7;
-    g.fillStyle = 'rgba(120,130,150,0.16)'; g.beginPath(); g.arc(x, y, r, 0, 6.2832); g.fill();
-    g.fillStyle = 'rgba(255,255,255,0.10)'; g.beginPath(); g.arc(x - r * 0.25, y - r * 0.25, r * 0.6, 0, 6.2832); g.fill();
-  }
+
+  // --- a couple of bright ray craters (Tycho, Copernicus) with faint rays
+  const rayCrater = (x, y, r) => {
+    const cx = x * s, cy = y * s, rr = r * s;
+    g.strokeStyle = 'rgba(236,240,247,0.07)'; g.lineWidth = 1.4;
+    for (let k = 0; k < 12; k++) {
+      const a = (k / 12) * 6.2832 + Math.random() * 0.3, len = rr * (4 + Math.random() * 4);
+      g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + Math.cos(a) * len, cy + Math.sin(a) * len); g.stroke();
+    }
+    g.fillStyle = 'rgba(244,247,252,0.5)'; g.beginPath(); g.arc(cx, cy, rr, 0, 6.2832); g.fill();
+    g.fillStyle = 'rgba(70,78,95,0.5)'; g.beginPath(); g.arc(cx, cy, rr * 0.45, 0, 6.2832); g.fill();
+  };
+  rayCrater(0.46, 0.82, 0.022); // Tycho (lower)
+  rayCrater(0.40, 0.45, 0.016); // Copernicus
+
+  // --- limb darkening: deepen the edge so the disc reads as a sphere, not a coin
+  const lg = g.createRadialGradient(R, R, R * 0.62, R, R, R);
+  lg.addColorStop(0, 'rgba(18,24,38,0)');
+  lg.addColorStop(1, 'rgba(14,20,34,0.55)');
+  g.fillStyle = lg; g.beginPath(); g.arc(R, R, R * 0.99, 0, 6.2832); g.fill();
   g.restore();
+
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
 
