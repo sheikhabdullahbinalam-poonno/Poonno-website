@@ -733,9 +733,9 @@ html.has-cursor, html.has-cursor * { cursor: none !important; }
   opacity: 0; filter: blur(8px);
   will-change: opacity, filter, transform;
   text-align: center;
-  transition: opacity 0.8s cubic-bezier(0.23,1,0.32,1),
-              filter 0.8s cubic-bezier(0.23,1,0.32,1),
-              transform 0.8s cubic-bezier(0.23,1,0.32,1);
+  /* opacity & filter are driven directly by scroll (no time-lag); only the
+     translate eases, so it dissolves in place without trailing into the next beat */
+  transition: transform 0.8s cubic-bezier(0.23,1,0.32,1);
 }
 #board-prompt.show { transform: translate(-50%, -50%); }
 #board-prompt span {

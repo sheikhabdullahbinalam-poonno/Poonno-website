@@ -4,10 +4,12 @@
 //  Scroll-driven via updateStationOverlay(t). Soft Noomo-style blur dissolve.
 // ============================================================================
 
-// Wide windows so there's a long SHARP hold to read (ramps are short at the edges).
+// Each window sits AFTER its lead-in beat and ends BEFORE the station arrives:
+//  - Creative: after the board prompt (gone ~0.482) and before arrival (~0.548)
+//  - Unilever: after the moon-gaze (gone ~0.752) and before arrival (~0.804)
 const STATIONS = [
-  { t0: 0.470, t1: 0.560, name: 'Creative Origins', tag: 'The beginnings of a creative pursuit' },
-  { t0: 0.730, t1: 0.820, name: 'Unilever Years',   tag: 'Projects, problems, and the pursuit of better solutions' },
+  { t0: 0.495, t1: 0.545, name: 'Creative Origins', tag: 'The beginnings of a creative pursuit' },
+  { t0: 0.758, t1: 0.802, name: 'Unilever Years',   tag: 'Projects, problems, and the pursuit of better solutions' },
 ];
 
 let el, nameEl, tagEl, built = false;
@@ -34,8 +36,8 @@ export function updateStationOverlay(t) {
 
   if (nameEl.textContent !== active.name) { nameEl.textContent = active.name; tagEl.textContent = active.tag; }
   // soft dissolve at the edges only, with a long SHARP hold in the middle to read
-  const inK = Math.min((t - active.t0) / 0.022, 1);
-  const outK = Math.min((active.t1 - t) / 0.022, 1);
+  const inK = Math.min((t - active.t0) / 0.013, 1);
+  const outK = Math.min((active.t1 - t) / 0.013, 1);
   const op = Math.max(0, Math.min(inK, outK));
   const blur = (1 - op) * 7;
   el.style.display = op > 0.002 ? 'flex' : 'none';

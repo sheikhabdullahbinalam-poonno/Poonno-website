@@ -98,9 +98,14 @@ export function updateNews(t) {
   // Board-the-train prompt (Scene 4) — dissolves in as the article leaves frame,
   // and stays until the train is ~⅓ of the way to Creative Origins (#11).
   if (board) {
-    const boardOn = t > 0.430 && t < 0.515;
-    board.classList.toggle('show', boardOn);   // handles blur / translate / underline
-    board.style.opacity = boardOn ? '1' : '';   // robust visibility (class opacity is flaky here)
+    // Scroll-driven (NOT a time transition) so it's gone exactly as the train
+    // departs (~t0.482), regardless of scroll speed — no lag into the next overlay.
+    const inK = clamp((t - 0.430) / 0.016, 0, 1);
+    const outK = clamp((0.482 - t) / 0.014, 0, 1);
+    const op = Math.max(0, Math.min(inK, outK));
+    board.style.opacity = op.toFixed(3);
+    board.style.filter = op < 0.98 ? `blur(${((1 - op) * 8).toFixed(1)}px)` : 'none';
+    board.classList.toggle('show', op > 0.5);   // underline accent
   }
 
   // Reading guide (next + scroll hint) — visible while a page is settled to read,

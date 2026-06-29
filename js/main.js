@@ -148,7 +148,7 @@ function jerkAmp(tt) {
 
 // Run-2 "looking out at the moon": ride at the lead carriage's moon-side window
 // and gaze up at the moon while the magical forest streams past (eases in/out).
-const WIN0 = 0.735, WIN1 = 0.788;
+const WIN0 = 0.700, WIN1 = 0.748;
 const _winPos = new THREE.Vector3(), _winLook = new THREE.Vector3(), _npLook = new THREE.Vector3();
 const _winM = new THREE.Matrix4(), _winQ = new THREE.Quaternion(), _UP = new THREE.Vector3(0, 1, 0);
 function windowCam(tt) {
