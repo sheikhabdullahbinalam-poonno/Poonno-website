@@ -111,18 +111,22 @@ function moonTex() {
   const s = 512, c = document.createElement('canvas'); c.width = c.height = s;
   const g = c.getContext('2d'); const R = s / 2;
 
-  // --- base disc: highlands with spherical shading, light from upper-left.
-  // Deliberately mid-toned (not near-white) so the bloom pass doesn't blow the
-  // whole disc out — the dark maria then read as real lunar seas.
-  const grd = g.createRadialGradient(R * 0.74, R * 0.68, R * 0.05, R, R, R);
-  grd.addColorStop(0.00, '#d7dce4');
-  grd.addColorStop(0.45, '#c2c9d5');
-  grd.addColorStop(0.78, '#a3adbe');
-  grd.addColorStop(0.93, '#828da1');
-  grd.addColorStop(1.00, '#6c7689');
-  g.fillStyle = grd; g.beginPath(); g.arc(R, R, R * 0.995, 0, 6.2832); g.fill();
+  // --- base disc: highlands with spherical shading (light upper-left) AND limb
+  // darkening baked in, FEATHERING to transparent at the rim. The feather is what
+  // kills the hard white outline — a solid edge gets amplified into a glowing ring
+  // by the bloom pass. Mid-toned overall so the bloom doesn't wash out the maria.
+  const grd = g.createRadialGradient(R * 0.72, R * 0.66, R * 0.05, R, R, R);
+  grd.addColorStop(0.00, '#cfd5df');
+  grd.addColorStop(0.42, '#b7bfcc');
+  grd.addColorStop(0.70, '#949eb0');
+  grd.addColorStop(0.86, '#6e798d');   // limb darkening begins
+  grd.addColorStop(0.955, '#434c5f');  // deep limb
+  grd.addColorStop(0.99, '#262d3e');
+  grd.addColorStop(1.00, 'rgba(38,45,62,0)'); // feather to transparent — no hard rim
+  g.fillStyle = grd; g.beginPath(); g.arc(R, R, R, 0, 6.2832); g.fill();
 
-  g.save(); g.beginPath(); g.arc(R, R, R * 0.985, 0, 6.2832); g.clip();
+  // clip details well inside the feathered rim so nothing spills into the edge
+  g.save(); g.beginPath(); g.arc(R, R, R * 0.95, 0, 6.2832); g.clip();
 
   // soft-edged dark blob (a mare), built from a radial gradient so edges feather
   const blob = (x, y, rr, rgb, a) => {
@@ -135,25 +139,42 @@ function moonTex() {
   };
 
   // --- maria: the recognisable near-side pattern ("the man in the moon"),
-  // dark blue-grey seas. Overlapping blobs give irregular, organic shapes.
-  const MARE = '70,80,99';
-  blob(0.34, 0.30, 0.17, MARE, 0.80);  // Mare Imbrium (large, upper-left)
-  blob(0.28, 0.43, 0.13, MARE, 0.72);  // Oceanus Procellarum (left)
-  blob(0.55, 0.32, 0.10, MARE, 0.78);  // Mare Serenitatis
-  blob(0.63, 0.45, 0.11, MARE, 0.80);  // Mare Tranquillitatis
-  blob(0.79, 0.40, 0.066, MARE, 0.82); // Mare Crisium (isolated oval, right)
-  blob(0.71, 0.57, 0.075, MARE, 0.74); // Mare Fecunditatis
-  blob(0.61, 0.63, 0.058, MARE, 0.70); // Mare Nectaris
-  blob(0.43, 0.64, 0.085, MARE, 0.68); // Mare Nubium (lower-left)
-  blob(0.50, 0.50, 0.05, MARE, 0.45);  // faint central tie
+  // dark blue-grey seas. Darker + higher-contrast than before so they read.
+  const MARE = '55,64,82';
+  blob(0.34, 0.30, 0.17, MARE, 0.88);  // Mare Imbrium (large, upper-left)
+  blob(0.28, 0.43, 0.13, MARE, 0.80);  // Oceanus Procellarum (left)
+  blob(0.55, 0.32, 0.10, MARE, 0.86);  // Mare Serenitatis
+  blob(0.63, 0.45, 0.11, MARE, 0.88);  // Mare Tranquillitatis
+  blob(0.79, 0.40, 0.066, MARE, 0.90); // Mare Crisium (isolated oval, right)
+  blob(0.71, 0.57, 0.075, MARE, 0.82); // Mare Fecunditatis
+  blob(0.61, 0.63, 0.058, MARE, 0.78); // Mare Nectaris
+  blob(0.43, 0.64, 0.085, MARE, 0.76); // Mare Nubium (lower-left)
+  blob(0.50, 0.50, 0.05, MARE, 0.50);  // faint central tie
 
-  // --- crater field across the brighter highlands: dark pit + lit upper-left
-  // rim + lower-right shadow gives each one a little 3-D relief.
-  for (let i = 0; i < 46; i++) {
-    const x = Math.random() * s, y = Math.random() * s, r = 2 + Math.random() * 8;
-    g.fillStyle = 'rgba(60,68,84,0.30)'; g.beginPath(); g.arc(x + r * 0.18, y + r * 0.18, r, 0, 6.2832); g.fill(); // shadow
-    g.fillStyle = 'rgba(95,104,120,0.40)'; g.beginPath(); g.arc(x, y, r, 0, 6.2832); g.fill();                    // pit
-    g.fillStyle = 'rgba(240,244,250,0.32)'; g.beginPath(); g.arc(x - r * 0.28, y - r * 0.28, r * 0.55, 0, 6.2832); g.fill(); // lit rim
+  // --- broad mottling: low-contrast light/dark patches break up the flatness
+  for (let i = 0; i < 90; i++) {
+    const x = Math.random() * s, y = Math.random() * s, r = 8 + Math.random() * 26;
+    const dark = Math.random() < 0.55;
+    g.fillStyle = dark ? `rgba(60,68,84,${0.04 + Math.random() * 0.05})`
+                       : `rgba(228,234,244,${0.03 + Math.random() * 0.04})`;
+    g.beginPath(); g.arc(x, y, r, 0, 6.2832); g.fill();
+  }
+
+  // --- regolith grain: fine speckle for a rough, dusty surface (low alpha so it
+  // textures rather than sparkles, and won't bloom)
+  for (let i = 0; i < 2200; i++) {
+    const x = Math.random() * s, y = Math.random() * s, sz = 0.8 + Math.random() * 1.6;
+    g.fillStyle = Math.random() < 0.5 ? 'rgba(36,43,57,0.10)' : 'rgba(225,231,242,0.07)';
+    g.fillRect(x, y, sz, sz);
+  }
+
+  // --- crater field: dark pit + lit upper-left rim + lower-right shadow → relief.
+  // More of them, with stronger rim/shadow so they read as pitted, rough terrain.
+  for (let i = 0; i < 72; i++) {
+    const x = Math.random() * s, y = Math.random() * s, r = 2 + Math.random() * 9;
+    g.fillStyle = 'rgba(48,55,70,0.40)'; g.beginPath(); g.arc(x + r * 0.20, y + r * 0.20, r, 0, 6.2832); g.fill(); // shadow
+    g.fillStyle = 'rgba(86,95,112,0.45)'; g.beginPath(); g.arc(x, y, r, 0, 6.2832); g.fill();                     // pit
+    g.fillStyle = 'rgba(244,247,252,0.42)'; g.beginPath(); g.arc(x - r * 0.30, y - r * 0.30, r * 0.55, 0, 6.2832); g.fill(); // lit rim
   }
 
   // --- a couple of bright ray craters (Tycho, Copernicus) with faint rays
@@ -165,16 +186,11 @@ function moonTex() {
       g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + Math.cos(a) * len, cy + Math.sin(a) * len); g.stroke();
     }
     g.fillStyle = 'rgba(244,247,252,0.5)'; g.beginPath(); g.arc(cx, cy, rr, 0, 6.2832); g.fill();
-    g.fillStyle = 'rgba(70,78,95,0.5)'; g.beginPath(); g.arc(cx, cy, rr * 0.45, 0, 6.2832); g.fill();
+    g.fillStyle = 'rgba(64,72,90,0.55)'; g.beginPath(); g.arc(cx, cy, rr * 0.45, 0, 6.2832); g.fill();
   };
   rayCrater(0.46, 0.82, 0.022); // Tycho (lower)
   rayCrater(0.40, 0.45, 0.016); // Copernicus
 
-  // --- limb darkening: deepen the edge so the disc reads as a sphere, not a coin
-  const lg = g.createRadialGradient(R, R, R * 0.62, R, R, R);
-  lg.addColorStop(0, 'rgba(18,24,38,0)');
-  lg.addColorStop(1, 'rgba(14,20,34,0.55)');
-  g.fillStyle = lg; g.beginPath(); g.arc(R, R, R * 0.99, 0, 6.2832); g.fill();
   g.restore();
 
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
