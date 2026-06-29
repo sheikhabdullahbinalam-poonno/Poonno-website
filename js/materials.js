@@ -167,10 +167,12 @@ export function stoneMaterial(opts = {}) {
         vec2 ux = vec2(slp.z, slp.y*2.6), uy = vec2(slp.x, slp.z), uz = vec2(slp.x, slp.y*2.6);
         float m  = brickMask(ux)*an.x + brickMask(uy)*an.y + brickMask(uz)*an.z;
         float tn = brickTone(ux)*an.x + brickTone(uy)*an.y + brickTone(uz)*an.z;
-        vec3 col = mix(uMortar, uStone*(0.66 + 0.5*tn), m);
-        col *= 0.84 + 0.3*fbm3(slp*2.6);                       // weathering mottle
+        vec3 col = mix(uMortar, uStone*(0.6 + 0.5*tn), m);
+        col *= 0.62 + 0.34*fbm3(slp*2.6);                      // darker, grungier weathering mottle
+        float grime = fbm3(vec3(slp.x*0.7, slp.y*0.06, slp.z*0.7));
+        col *= 1.0 - 0.4*smoothstep(0.45, 0.82, grime);        // dark vertical water-stain streaks
         gStoneG = m;
-        gStoneH = m * 0.8 + fbm3(slp*3.4) * 0.3;               // bricks proud, mortar recessed
+        gStoneH = m * 0.85 + fbm3(slp*3.4) * 0.3;              // bricks proud, mortar recessed
         diffuseColor.rgb *= col;`)
       .replace('#include <roughnessmap_fragment>',
         '#include <roughnessmap_fragment>\n        roughnessFactor = mix(1.0, roughnessFactor, gStoneG);') // mortar rougher
@@ -183,6 +185,6 @@ export function stoneMaterial(opts = {}) {
           vec3 grad = sign(det) * (Hx * R1 + Hy * R2);
           normal = normalize(abs(det) * normal - grad * uBump); }`);
   };
-  mat.customProgramCacheKey = () => 'stone_v2';
+  mat.customProgramCacheKey = () => 'stone_v3';
   return mat;
 }

@@ -341,16 +341,17 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
   // --- materials (procedural PBR, weathered & moonlit) ---
   // Walls/quoins: real triplanar masonry. Deck/timber: object-space wood grain.
   // Iron: the train's rusty weatheredMetal so the station shares its patina.
-  const stone   = stoneMaterial({ stone: new THREE.Color(0x6a6051), mortar: new THREE.Color(0x241f17), scale: 1.5 });
-  const brickQ  = stoneMaterial({ stone: new THREE.Color(0x7a4e38), mortar: new THREE.Color(0x241812), scale: 2.6 }); // quoins/chimney brick
-  const slate   = new THREE.MeshStandardMaterial({ map: slateTex(), color: 0x9aa3ad, roughness: 0.7, metalness: 0.12 });
-  const timber  = woodMaterial({ light: new THREE.Color(0x4a3420), dark: new THREE.Color(0x201408), scale: 1.4 });
-  const deckWood = woodMaterial({ light: new THREE.Color(0x5e442a), dark: new THREE.Color(0x2a1c0e), scale: 0.7 });
+  const stone   = stoneMaterial({ stone: new THREE.Color(0x3d362b), mortar: new THREE.Color(0x12100b), scale: 1.5, bump: 1.1 });
+  const brickQ  = stoneMaterial({ stone: new THREE.Color(0x472f22), mortar: new THREE.Color(0x110b06), scale: 2.6, bump: 1.2 }); // quoins/chimney brick
+  const slate   = new THREE.MeshStandardMaterial({ map: slateTex(), color: 0x3f444c, roughness: 0.84, metalness: 0.08 });
+  const timber  = woodMaterial({ light: new THREE.Color(0x322212), dark: new THREE.Color(0x120a04), scale: 1.4 });
+  const deckWood = woodMaterial({ light: new THREE.Color(0x392717), dark: new THREE.Color(0x180f07), scale: 0.7 });
   const iron    = weatheredMetal({
-    base: new THREE.Color(0x20211f), rust: new THREE.Color(0x5a3320),
-    yLow: 0.0, yHigh: 4.0, paintRough: 0.55, rustRough: 0.95, metalBase: 0.7, scale: 1.6, panel: 0.0, rustAmt: 0.25,
+    base: new THREE.Color(0x191a18), rust: new THREE.Color(0x4f2d1a),
+    yLow: 0.0, yHigh: 4.0, paintRough: 0.62, rustRough: 0.97, metalBase: 0.62, scale: 1.6, panel: 0.0, rustAmt: 0.42,
   });
-  const winGlow = new THREE.MeshStandardMaterial({ color: 0x180f05, emissive: 0xffae50, emissiveIntensity: 0.45, roughness: 0.7 });
+  // dark, unlit night glass — the building has NO interior light; faint cool sheen only
+  const winGlow = new THREE.MeshStandardMaterial({ color: 0x0b0e12, roughness: 0.3, metalness: 0.4, envMapIntensity: 0.6 });
 
   const box = (w, h, dp, mat, d, y, dz, ry = 0) => {
     const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, dp), mat);
@@ -406,10 +407,11 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
   box(1.0, 2.4, 1.0, brickQ, bD + 1.6, bH + 1.7, -2.2);
   box(1.3, 0.3, 1.3, slate, bD + 1.6, bH + 3.0, -2.2);
 
-  // ---- recessed door: brick surround + panelled timber door + faint warm leak ----
+  // ---- recessed door: brick surround + panelled timber door (unlit, dark recess) ----
   const doorW = 1.6, doorH = 3.0;
+  const voidMat = new THREE.MeshStandardMaterial({ color: 0x050506, roughness: 1, metalness: 0 });
   box(doorW + 0.6, doorH + 0.4, 0.32, brickQ, bFront + 0.06, doorH / 2 + 0.05, 0); // surround
-  box(doorW + 0.5, doorH + 0.3, 0.1, winGlow, bFront - 0.16, doorH / 2 + 0.05, 0); // glow leak behind
+  box(doorW + 0.4, doorH + 0.2, 0.1, voidMat, bFront - 0.18, doorH / 2 + 0.05, 0); // dark void behind
   box(doorW, doorH, 0.28, timber, bFront - 0.1, doorH / 2, 0);                     // door slab
   for (const py of [doorH * 0.72, doorH * 0.38])                                   // raised panels
     box(doorW * 0.6, doorH * 0.24, 0.06, timber, bFront - 0.26, py, 0);
@@ -452,7 +454,7 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
 
   // ---- ornate wrought-iron gas lamp (ref photo): stepped base, fluted post,
   // glass-paned lantern with iron frame, peaked cap + finial. Dim warm glass. ----
-  const glassMat = new THREE.MeshStandardMaterial({ color: 0x2a1d0c, emissive: 0xffb05a, emissiveIntensity: 0.5, roughness: 0.5, transparent: true, opacity: 0.9 });
+  const glassMat = new THREE.MeshStandardMaterial({ color: 0x2a1d0c, emissive: 0xff9f48, emissiveIntensity: 0.42, roughness: 0.5, transparent: true, opacity: 0.9 });
   const addLamp = (lx, lz) => {
     const y0 = deckTop;
     const m = (geo, y) => { const e = new THREE.Mesh(geo, iron); e.position.set(lx, y0 + y, z + lz); add(e); return e; };
@@ -472,19 +474,17 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
     roof.position.set(lx, y0 + ly + 0.45, z + lz); roof.rotation.y = Math.PI / 4; add(roof);
     m(new THREE.SphereGeometry(0.07, 8, 8), ly + 0.66);               // finial ball
     m(new THREE.ConeGeometry(0.03, 0.18, 6), ly + 0.82);             // finial spike
-    const L = new THREE.PointLight(0xffaa55, 2.0, 13, 2);
+    const L = new THREE.PointLight(0xff9f4a, 1.7, 12, 2);
     L.position.set(lx, y0 + ly, z + lz); add(L);
   };
   addLamp(X(nearD + 0.5), -12); addLamp(X(nearD + 0.5), 2); addLamp(X(nearD + 0.5), 15);
-  // a single very soft fill so the façade is barely readable (low — keeps mystery)
-  const fill = new THREE.PointLight(0xffc070, 1.4, 18, 2);
-  fill.position.set(X(bFront - 1), 2.6, z); add(fill);
+  // NB: no building light — the station is dark/unlit (only the platform lamps glow).
 
   // ---- carved wooden name board at the platform START, faced down the line so an
   // approaching train reads it from a distance (rotated to face +z, ref photo) ----
   {
     const { map, bump } = signTex(name);
-    const sw = 5.4, sh = 1.25, signZ = z + PLEN / 2 - 2.5;
+    const sw = 4.8, sh = 1.2, signZ = z + PLEN / 2 - 2.5;
     const boardMat = new THREE.MeshStandardMaterial({ map, bumpMap: bump, bumpScale: 0.9, roughness: 0.82, metalness: 0 });
     const sign = new THREE.Group();
     const board = new THREE.Mesh(new THREE.BoxGeometry(sw, sh, 0.1), [timber, timber, timber, timber, boardMat, timber]);
@@ -493,8 +493,9 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
       const p = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 3.1, 10), iron);
       p.position.set(sx, 1.55, 0); sign.add(p);
     }
-    sign.position.set(X(nearD + 0.4), 0, signZ);
-    sign.rotation.y = -side * 0.3;                                     // faced +z, angled slightly to the track
+    // set WELL BACK onto the platform so the board never overhangs the track/train
+    sign.position.set(X(nearD + 3.0), 0, signZ);
+    sign.rotation.y = -side * 0.28;                                    // faced +z, angled slightly to the track
     sign.traverse((o) => { o.frustumCulled = false; });
     G.add(sign);
   }
@@ -503,15 +504,15 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
   const moss = new THREE.MeshStandardMaterial({ color: 0x2c361f, roughness: 1, metalness: 0 });
   const leafMat = new THREE.MeshStandardMaterial({ color: 0x3f3016, roughness: 1, metalness: 0 });
   const weedMat = new THREE.MeshStandardMaterial({ color: 0x313d1c, roughness: 1, metalness: 0 });
-  for (let i = 0; i < 16; i++) {                                       // moss patches on the deck
-    const p = new THREE.Mesh(new THREE.CircleGeometry(0.18 + Math.random() * 0.3, 6), moss);
+  for (let i = 0; i < 24; i++) {                                       // moss patches on the deck
+    const p = new THREE.Mesh(new THREE.CircleGeometry(0.18 + Math.random() * 0.32, 6), moss);
     p.rotation.x = -Math.PI / 2; p.rotation.z = Math.random() * 6;
     p.position.set(X(nearD + Math.random() * pW), deckTop + 0.105, z + (Math.random() - 0.5) * PLEN);
     p.scale.y = 0.6 + Math.random(); add(p);
   }
-  for (let i = 0; i < 8; i++) {                                        // moss creeping up the wall base
-    const p = new THREE.Mesh(new THREE.CircleGeometry(0.16 + Math.random() * 0.26, 6), moss);
-    p.rotation.y = faceTrack; p.position.set(X(bFront - 0.03), 0.2 + Math.random() * 1.1, z + (Math.random() - 0.5) * (bW - 1)); add(p);
+  for (let i = 0; i < 16; i++) {                                       // moss creeping up the wall base
+    const p = new THREE.Mesh(new THREE.CircleGeometry(0.16 + Math.random() * 0.28, 6), moss);
+    p.rotation.y = faceTrack; p.position.set(X(bFront - 0.03), 0.15 + Math.random() * 1.4, z + (Math.random() - 0.5) * (bW - 0.6)); add(p);
   }
   for (let i = 0; i < 12; i++) {                                       // weeds at the track-side base
     const wc = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.35 + Math.random() * 0.3, 4), weedMat);
