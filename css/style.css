@@ -144,55 +144,83 @@ body {
   padding: 0 8px 8px;
   transform-origin: 50% 0;            /* swing from the ceiling */
 }
-/* the ceiling anchor the cord hangs from */
+/* the ceiling anchor — a corroded dark fitting */
 #whistle-rope .rope-mount {
   width: 10px; height: 4px; border-radius: 0 0 3px 3px;
-  background: linear-gradient(#3a3026, #221a12);
-  box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  background: linear-gradient(#2c241a, #17110a);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.6);
 }
-/* braided cord — the repeating diagonal gradient reads as twisted fibres */
+/* old braided cord — dusty, faded, greyed-out fibres with grime, not glossy.
+   ::before/::after add a couple of stray frayed strands poking out. */
 #whistle-rope .rope-cord {
+  position: relative;
   width: 4px; height: 30px;
   background:
-    repeating-linear-gradient(48deg, #8a5a32 0 2px, #6b4424 2px 4px, #a9763f 4px 6px);
+    repeating-linear-gradient(46deg, #6f6047 0 2px, #463a2a 2px 4px, #595038 4px 6px);
   border-radius: 2px;
-  box-shadow: inset -1px 0 1px rgba(0,0,0,0.4), inset 1px 0 1px rgba(255,210,150,0.18);
+  box-shadow: inset -1px 0 1px rgba(0,0,0,0.55), inset 1px 0 1px rgba(190,170,130,0.10);
+  filter: saturate(0.6) brightness(0.92);
 }
-/* knot where the cord meets the handle */
+#whistle-rope .rope-cord::before,
+#whistle-rope .rope-cord::after {
+  content: ""; position: absolute; width: 1px; height: 6px;
+  background: #5a4e38; opacity: 0.6; top: 40%;
+}
+#whistle-rope .rope-cord::before { left: -2px; transform: rotate(24deg); }
+#whistle-rope .rope-cord::after  { right: -2px; transform: rotate(-28deg); height: 5px; top: 62%; }
+/* worn, fuzzy knot where the cord meets the handle — stray fibres splay out */
 #whistle-rope .rope-knot {
+  position: relative;
   width: 9px; height: 9px; margin-top: -1px; border-radius: 50%;
-  background: radial-gradient(circle at 38% 32%, #b9824a, #5e3c20);
-  box-shadow: 0 1px 2px rgba(0,0,0,0.45);
+  background: radial-gradient(circle at 38% 32%, #7a6748, #3a2c1a);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.5);
 }
+#whistle-rope .rope-knot::before,
+#whistle-rope .rope-knot::after {
+  content: ""; position: absolute; width: 1px; height: 7px;
+  background: #574a35; opacity: 0.7; top: -3px;
+}
+#whistle-rope .rope-knot::before { left: 2px; transform: rotate(20deg); }
+#whistle-rope .rope-knot::after  { right: 2px; transform: rotate(-24deg); }
 #whistle-rope .rope-pull {
   display: flex; flex-direction: column; align-items: center;
   transition: transform 0.14s cubic-bezier(0.34,1.56,0.64,1);
 }
-/* polished brass ring linking knot to grip */
+/* tarnished, patinated brass ring — dull olive-bronze, no shine, pitted */
 #whistle-rope .pull-ring {
   width: 12px; height: 12px; margin-top: -1px;
   border-radius: 50%;
   border: 2.5px solid transparent;
   background:
-    linear-gradient(#1b140c, #1b140c) padding-box,
-    linear-gradient(160deg, #f6d79a, #b07d31 55%, #6e4a18) border-box;
-  box-shadow: 0 0 6px rgba(244,200,120,0.3);
+    linear-gradient(#181208, #181208) padding-box,
+    linear-gradient(160deg, #8f8758, #5c5a37 50%, #3a3320) border-box;
+  box-shadow: inset 0 0 3px rgba(0,0,0,0.5);
+  filter: saturate(0.7);
 }
-/* turned-wood handle grip with a vertical sheen */
+/* weathered, scuffed wood grip — dark, dull, with a hairline crack (::after) */
 #whistle-rope .pull-grip {
+  position: relative;
   width: 13px; height: 26px; margin-top: -1px;
   border-radius: 6px / 7px;
   background:
-    linear-gradient(90deg, #3a2615 0%, #7d512b 38%, #b07c4a 52%, #6b4324 70%, #321f10 100%);
-  box-shadow: inset 0 6px 6px rgba(255,214,160,0.18), inset 0 -7px 7px rgba(0,0,0,0.5),
-              0 2px 6px rgba(0,0,0,0.5);
+    linear-gradient(90deg, #241910 0%, #4a3623 40%, #6a4e32 52%, #3e2c1b 70%, #1d140b 100%);
+  box-shadow: inset 0 5px 5px rgba(180,150,105,0.10), inset 0 -7px 8px rgba(0,0,0,0.6),
+              0 2px 5px rgba(0,0,0,0.55);
+  filter: saturate(0.7) brightness(0.92);
 }
-/* rounded tassel cap at the very bottom, faintly ember-lit */
+#whistle-rope .pull-grip::after {            /* a worn hairline crack down the grip */
+  content: ""; position: absolute; left: 58%; top: 18%;
+  width: 1px; height: 60%;
+  background: rgba(0,0,0,0.5);
+  transform: rotate(6deg);
+}
+/* frayed, torn rope-end — splayed fibres via a jagged clip-path, no glow */
 #whistle-rope .pull-tip {
-  width: 16px; height: 11px; margin-top: -3px;
-  border-radius: 0 0 9px 9px;
-  background: radial-gradient(circle at 50% 20%, var(--ember), var(--rust) 70%, #4a2a16);
-  box-shadow: 0 0 12px rgba(244,162,89,0.4);
+  width: 14px; height: 13px; margin-top: -2px;
+  background: repeating-linear-gradient(90deg, #5a4d38 0 1.5px, #322819 1.5px 3px);
+  clip-path: polygon(0 0, 100% 0, 90% 38%, 100% 62%, 78% 52%, 86% 100%, 64% 56%, 50% 100%, 37% 58%, 15% 100%, 22% 52%, 0 64%, 10% 38%);
+  filter: saturate(0.6) brightness(0.85);
+  opacity: 0.95;
 }
 /* pull feedback — the handle assembly drops on hover/press */
 #whistle-rope:hover .rope-pull { transform: translateY(3px); }
