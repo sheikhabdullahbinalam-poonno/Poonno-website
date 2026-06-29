@@ -301,6 +301,36 @@ function clockTex() {
   g.lineWidth = 3; g.beginPath(); g.moveTo(R, R); g.lineTo(R + Math.cos(-2.6) * 42, R + Math.sin(-2.6) * 42); g.stroke(); // minute
   _clockTexCache.t = new THREE.CanvasTexture(c); _clockTexCache.t.colorSpace = THREE.SRGBColorSpace; return _clockTexCache.t;
 }
+// Carved wooden name board: a colour map (weathered plank + dark routed serif text
+// with a carved-bevel highlight) and a MATCHING bump/depth map (same text + position,
+// black = recessed) so raked light shows the engraving. Per the attached photo.
+function signTex(name) {
+  const w = 640, h = 150;
+  const mk = () => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+  const c = mk(), g = c.getContext('2d');
+  g.fillStyle = '#c9bb98'; g.fillRect(0, 0, w, h);                       // weathered cream-tan board
+  for (let i = 0; i < 150; i++) {                                        // plank grain streaks
+    g.strokeStyle = `rgba(110,90,58,${0.03 + Math.random() * 0.06})`; g.lineWidth = 1;
+    const y = Math.random() * h; g.beginPath(); g.moveTo(0, y);
+    g.bezierCurveTo(w * 0.33, y + (Math.random() - 0.5) * 7, w * 0.66, y + (Math.random() - 0.5) * 7, w, y + (Math.random() - 0.5) * 5); g.stroke();
+  }
+  const eg = g.createLinearGradient(0, 0, 0, h);                          // edge weathering
+  eg.addColorStop(0, 'rgba(50,36,20,0.28)'); eg.addColorStop(0.5, 'rgba(0,0,0,0)'); eg.addColorStop(1, 'rgba(50,36,20,0.34)');
+  g.fillStyle = eg; g.fillRect(0, 0, w, h);
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  let fs = 66; g.font = `700 ${fs}px Georgia, serif`;
+  while (g.measureText(name).width > w - 64 && fs > 20) { fs -= 2; g.font = `700 ${fs}px Georgia, serif`; }
+  g.fillStyle = 'rgba(238,230,210,0.5)'; g.fillText(name, w / 2 - 1.5, h / 2 - 1.5); // carved bevel highlight
+  g.fillStyle = '#231a0e'; g.fillText(name, w / 2, h / 2);                            // recessed ink
+  const map = new THREE.CanvasTexture(c); map.colorSpace = THREE.SRGBColorSpace; map.anisotropy = 8;
+  // matching depth map — white board, black (recessed) letters in the SAME place
+  const b = mk(), gb = b.getContext('2d');
+  gb.fillStyle = '#fff'; gb.fillRect(0, 0, w, h);
+  gb.textAlign = 'center'; gb.textBaseline = 'middle'; gb.font = `700 ${fs}px Georgia, serif`;
+  gb.fillStyle = '#000'; gb.fillText(name, w / 2, h / 2);
+  const bump = new THREE.CanvasTexture(b);
+  return { map, bump };
+}
 
 function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, name = '' }) {
   const G = new THREE.Group(); scene.add(G);
@@ -348,11 +378,28 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
   const beam = (w, h, d, y, dz, ry = 0) => box(w, h, d, timber, bFront - 0.03, y, dz, ry);
   beam(0.22, bH, 0.22, bH / 2, -2.6); beam(0.22, bH, 0.22, bH / 2, 0); beam(0.22, bH, 0.22, bH / 2, 2.6); // verticals
   beam(0.22, 0.22, bW, bH - 0.3, 0); beam(0.22, 0.22, bW, 2.4, 0);     // horizontals
-  // gable roof (two slate slopes) + gable-end fill
+  // gable roof (two slate slopes) — slightly irregular: per-slope jitter, a ridge
+  // cap, and a scatter of displaced / missing slate tiles along the eaves.
   for (const s of [-1, 1]) {
     const slope = new THREE.Mesh(new THREE.BoxGeometry(7.7, 0.24, bW + 0.7), slate);
-    slope.position.set(X(bD) + side * s * 1.55, bH + 1.35, z); slope.rotation.z = s * 0.62; add(slope);
+    slope.position.set(X(bD) + side * s * 1.55, bH + 1.35 + (Math.random() - 0.5) * 0.08, z + (Math.random() - 0.5) * 0.1);
+    slope.rotation.z = s * 0.62 + (Math.random() - 0.5) * 0.025;
+    slope.rotation.x = (Math.random() - 0.5) * 0.018; add(slope);
+    // loose/displaced tiles riding the eave, a few sunk (missing) for a worn line
+    for (let i = 0; i < 9; i++) {
+      const tz = z - (bW + 0.5) / 2 + Math.random() * (bW + 0.5);
+      const missing = Math.random() < 0.18;
+      const tile = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.07, 0.5),
+        missing ? new THREE.MeshStandardMaterial({ color: 0x161a1f, roughness: 1 }) : slate);
+      tile.position.set(X(bD) + side * s * 3.0 + side * (Math.random() - 0.5) * 0.3,
+        bH + 0.45 + (missing ? -0.06 : Math.random() * 0.08), tz);
+      tile.rotation.set((Math.random() - 0.5) * 0.1, (Math.random() - 0.5) * 0.2, s * 0.62 + (Math.random() - 0.5) * 0.12);
+      add(tile);
+    }
   }
+  // ridge cap along the apex
+  const ridge = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.26, bW + 0.8), slate);
+  ridge.position.set(X(bD), bH + 2.42, z); ridge.rotation.y = Math.PI / 4; ridge.scale.x = 0.7; add(ridge);
   box(7.0, 1.7, 0.3, stone, bD, bH + 0.85, -bW / 2 + 0.16);
   box(7.0, 1.7, 0.3, stone, bD, bH + 0.85, bW / 2 - 0.16);
   // brick chimney + slate cap
@@ -403,30 +450,82 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
   box(1.8, 0.12, 0.5, timber, bFront - 1.0, deckTop + 0.55, 4.5);
   box(1.8, 0.5, 0.1, timber, bFront - 0.78, deckTop + 0.8, 4.7);
 
-  // ---- rusted-iron lamp posts with DIM warm lanterns (kept low so the geometry
-  // stays in moody shadow rather than blown out) ----
-  for (const dz of [-12, 0, 12]) {
-    const lx = X(nearD + 0.5), ly0 = deckTop;
-    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.1, 3.4, 10), iron);
-    post.position.set(lx, ly0 + 1.7, z + dz); add(post);
-    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.5), iron);
-    arm.position.set(lx, ly0 + 3.3, z + dz); add(arm);
-    const lantern = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.46, 0.3),
-      new THREE.MeshStandardMaterial({ color: 0x2a1d0c, emissive: 0xffb05a, emissiveIntensity: 0.35, roughness: 0.6 }));
-    lantern.position.set(lx, ly0 + 3.25, z + dz); add(lantern);
-    const cap = new THREE.Mesh(new THREE.ConeGeometry(0.24, 0.22, 4), iron);
-    cap.position.set(lx, ly0 + 3.58, z + dz); cap.rotation.y = Math.PI / 4; add(cap);
-    const L = new THREE.PointLight(0xffaa55, 2.0, 12, 2);    // small, dim warm pool
-    L.position.set(lx, ly0 + 3.15, z + dz); add(L);
-  }
+  // ---- ornate wrought-iron gas lamp (ref photo): stepped base, fluted post,
+  // glass-paned lantern with iron frame, peaked cap + finial. Dim warm glass. ----
+  const glassMat = new THREE.MeshStandardMaterial({ color: 0x2a1d0c, emissive: 0xffb05a, emissiveIntensity: 0.5, roughness: 0.5, transparent: true, opacity: 0.9 });
+  const addLamp = (lx, lz) => {
+    const y0 = deckTop;
+    const m = (geo, y) => { const e = new THREE.Mesh(geo, iron); e.position.set(lx, y0 + y, z + lz); add(e); return e; };
+    m(new THREE.CylinderGeometry(0.24, 0.32, 0.4, 12), 0.2);            // base step 1
+    m(new THREE.CylinderGeometry(0.16, 0.24, 0.3, 12), 0.55);          // base step 2
+    m(new THREE.CylinderGeometry(0.055, 0.09, 3.0, 12), 2.1);         // fluted post
+    m(new THREE.CylinderGeometry(0.12, 0.12, 0.1, 12), 2.0);          // mid collar
+    const ly = 3.7;
+    m(new THREE.BoxGeometry(0.5, 0.08, 0.5), ly - 0.34);              // lantern floor
+    const glass = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.58, 0.4), glassMat);
+    glass.position.set(lx, y0 + ly, z + lz); add(glass);
+    for (const ex of [-0.21, 0.21]) for (const ez of [-0.21, 0.21]) {  // iron frame corners
+      const e = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.6, 0.04), iron);
+      e.position.set(lx + ex, y0 + ly, z + lz + ez); add(e);
+    }
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(0.4, 0.32, 4), iron);
+    roof.position.set(lx, y0 + ly + 0.45, z + lz); roof.rotation.y = Math.PI / 4; add(roof);
+    m(new THREE.SphereGeometry(0.07, 8, 8), ly + 0.66);               // finial ball
+    m(new THREE.ConeGeometry(0.03, 0.18, 6), ly + 0.82);             // finial spike
+    const L = new THREE.PointLight(0xffaa55, 2.0, 13, 2);
+    L.position.set(lx, y0 + ly, z + lz); add(L);
+  };
+  addLamp(X(nearD + 0.5), -12); addLamp(X(nearD + 0.5), 2); addLamp(X(nearD + 0.5), 15);
   // a single very soft fill so the façade is barely readable (low — keeps mystery)
   const fill = new THREE.PointLight(0xffc070, 1.4, 18, 2);
   fill.position.set(X(bFront - 1), 2.6, z); add(fill);
 
-  // ---- station name board at the START of the platform, squared to the tracks
-  // (ref: Name plate.webp — yellow board, dark text, on twin posts) ----
-  const signZ = z + PLEN / 2 - 3;
-  G.add(makeNameplate(name, X(nearD + 0.3), 2.6, signZ, trackX, signZ, 6.0));
+  // ---- carved wooden name board at the platform START, faced down the line so an
+  // approaching train reads it from a distance (rotated to face +z, ref photo) ----
+  {
+    const { map, bump } = signTex(name);
+    const sw = 5.4, sh = 1.25, signZ = z + PLEN / 2 - 2.5;
+    const boardMat = new THREE.MeshStandardMaterial({ map, bumpMap: bump, bumpScale: 0.9, roughness: 0.82, metalness: 0 });
+    const sign = new THREE.Group();
+    const board = new THREE.Mesh(new THREE.BoxGeometry(sw, sh, 0.1), [timber, timber, timber, timber, boardMat, timber]);
+    board.position.y = 2.5; sign.add(board);                          // boardMat on +Z face (toward the train)
+    for (const sx of [-sw * 0.4, sw * 0.4]) {                          // rusted posts
+      const p = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 3.1, 10), iron);
+      p.position.set(sx, 1.55, 0); sign.add(p);
+    }
+    sign.position.set(X(nearD + 0.4), 0, signZ);
+    sign.rotation.y = -side * 0.3;                                     // faced +z, angled slightly to the track
+    sign.traverse((o) => { o.frustumCulled = false; });
+    G.add(sign);
+  }
+
+  // ---- weathering: moss, weeds, leaf litter, and a little debris ----
+  const moss = new THREE.MeshStandardMaterial({ color: 0x2c361f, roughness: 1, metalness: 0 });
+  const leafMat = new THREE.MeshStandardMaterial({ color: 0x3f3016, roughness: 1, metalness: 0 });
+  const weedMat = new THREE.MeshStandardMaterial({ color: 0x313d1c, roughness: 1, metalness: 0 });
+  for (let i = 0; i < 16; i++) {                                       // moss patches on the deck
+    const p = new THREE.Mesh(new THREE.CircleGeometry(0.18 + Math.random() * 0.3, 6), moss);
+    p.rotation.x = -Math.PI / 2; p.rotation.z = Math.random() * 6;
+    p.position.set(X(nearD + Math.random() * pW), deckTop + 0.105, z + (Math.random() - 0.5) * PLEN);
+    p.scale.y = 0.6 + Math.random(); add(p);
+  }
+  for (let i = 0; i < 8; i++) {                                        // moss creeping up the wall base
+    const p = new THREE.Mesh(new THREE.CircleGeometry(0.16 + Math.random() * 0.26, 6), moss);
+    p.rotation.y = faceTrack; p.position.set(X(bFront - 0.03), 0.2 + Math.random() * 1.1, z + (Math.random() - 0.5) * (bW - 1)); add(p);
+  }
+  for (let i = 0; i < 12; i++) {                                       // weeds at the track-side base
+    const wc = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.35 + Math.random() * 0.3, 4), weedMat);
+    wc.position.set(X(nearD - 0.25 + Math.random() * 0.5), 0.2, z + (Math.random() - 0.5) * PLEN);
+    wc.rotation.set((Math.random() - 0.5) * 0.4, Math.random() * 6, (Math.random() - 0.5) * 0.4); add(wc);
+  }
+  for (let i = 0; i < 26; i++) {                                       // leaf litter on the deck
+    const lf = new THREE.Mesh(new THREE.CircleGeometry(0.04 + Math.random() * 0.05, 5), leafMat);
+    lf.rotation.x = -Math.PI / 2; lf.position.set(X(nearD + Math.random() * pW), deckTop + 0.105, z + (Math.random() - 0.5) * PLEN); add(lf);
+  }
+  const crate = (cd, cz, s2) => { const m2 = new THREE.Mesh(new THREE.BoxGeometry(s2, s2, s2), timber); m2.position.set(X(cd), deckTop + s2 / 2, z + cz); m2.rotation.y = Math.random(); add(m2); };
+  crate(bFront - 1.3, -3.6, 0.7); crate(bFront - 1.7, -3.2, 0.5); crate(shD + 1.8, -shW + 2, 0.6);
+  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.9, 12), timber);
+  barrel.position.set(X(bFront - 1.0), deckTop + 0.45, z - 5.6); add(barrel);
   return G;
 }
 
