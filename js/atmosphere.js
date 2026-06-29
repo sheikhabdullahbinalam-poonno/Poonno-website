@@ -187,20 +187,11 @@ export class Atmosphere {
   }
 
   // ---- pointer glow trail + light -----------------------------------------
+  // DISABLED: the warm sprite + point light that followed the cursor read as a
+  // big "cursor glow". Removed entirely (the update guards on `this.trail`).
   _buildPointer() {
-    if (REDUCED) { this.trail = null; return; }
-    const m = new THREE.SpriteMaterial({
-      map: this.glow, color: new THREE.Color(PALETTE.firefly),
-      transparent: true, opacity: 0, depthWrite: false,
-      blending: THREE.AdditiveBlending,
-    });
-    this.trail = new THREE.Sprite(m);
-    this.trail.scale.set(4, 4, 1);
-    this.trail.position.copy(this.pointerWorld);
-    this.scene.add(this.trail);
-
-    this.trailLight = new THREE.PointLight(PALETTE.firefly, 0, 18, 2);
-    this.scene.add(this.trailLight);
+    this.trail = null;
+    this.trailLight = null;
   }
 
   _bindPointer() {

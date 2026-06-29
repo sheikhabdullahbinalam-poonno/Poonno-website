@@ -33,28 +33,20 @@ function masthead() {
 
 function articleWho() {
   const p = BIO.paragraphs;
-  // The MAIN column carries the article verbatim (every paragraph, in order).
+  // Full article, verbatim, flowed through responsive newspaper columns.
   const body = p.map((para, i) => `<p${i === 0 ? ' class="drop"' : ''}>${para}</p>`).join('');
   return `<article class="news-page page-top" id="news-page-1">
     ${masthead()}
-    <div class="np-frontgrid">
-      <div class="np-main">
-        <div class="na-kicker">${BIO.kicker}</div>
-        <h2 class="na-headline xl">Who is Poonno?</h2>
-        <div class="na-byline">A Special Report &middot; By the Editorial Desk</div>
-        <figure class="na-figure big bw">
-          <img src="References/Poonno%20Bio.jpg" alt="Poonno" loading="eager" />
-          <figcaption>The man behind the journey &mdash; somewhere between stations.</figcaption>
-        </figure>
-        <div class="na-body two">${body}</div>
-      </div>
-      <aside class="np-side">
-        <div class="side-item"><div class="side-kick">Comment</div><h3>On Curiosity as a Compass</h3><p>Why the most interesting careers refuse a single track &mdash; and what it costs to keep wondering aloud.</p></div>
-        <div class="side-item"><div class="side-kick">Markets</div><h3>Ideas, Up Sharply</h3><p>Analysts note a quiet surge in projects that begin as a sketch and end as a brand.</p></div>
-        <div class="side-item"><div class="side-kick">Notebook</div><h3>From Brief to Brand</h3><p>Field notes on turning abstract ideas into things people can see, feel, and remember.</p></div>
-        <div class="side-rule"></div>
-        <p class="side-foot">Weather: clear skies over the platform. Departures on time.</p>
-      </aside>
+    <div class="np-cols">
+      <div class="na-kicker">${BIO.kicker}</div>
+      <h2 class="na-headline">Who is Poonno?</h2>
+      <div class="na-byline">A Special Report &middot; By the Editorial Desk</div>
+      <div class="na-hr"></div>
+      <figure class="na-figure bw">
+        <img src="References/Poonno%20Bio.jpg" alt="Poonno" loading="eager" />
+        <figcaption>The man behind the journey &mdash; somewhere between stations.</figcaption>
+      </figure>
+      ${body}
     </div>
   </article>`;
 }
@@ -64,29 +56,22 @@ function articleGame() {
   const quote = b.find((x) => x.icon === 'quote');
   const list = (label) => {
     const blk = b.find((x) => x.label === label);
-    return blk ? `<div class="side-item"><div class="side-kick">${label}</div><ul class="na-list">${blk.items.map((i) => `<li>${i}</li>`).join('')}</ul></div>` : '';
+    return blk ? `<div class="sidebar"><div class="side-kick">${label}</div><ul class="na-list">${blk.items.map((i) => `<li>${i}</li>`).join('')}</ul></div>` : '';
   };
   return `<article class="news-page page-under" id="news-page-2">
     ${masthead()}
-    <div class="np-frontgrid">
-      <div class="np-main">
-        <div class="na-kicker">${BASKETBALL.kicker}</div>
-        <h2 class="na-headline xl">The Game Is Never Truly Over</h2>
-        <div class="na-byline">Sports Desk &middot; A Life in Motion</div>
-        <figure class="na-figure big bw">
-          <img src="References/Poonno%20Basketball.jpg" alt="Poonno on the court" loading="eager" />
-          <figcaption>On the court for the Bangladesh National Team.</figcaption>
-        </figure>
-        <div class="na-body two">
-          <p class="drop">${quote.text}</p>
-          <p>From the U18 national side to the 3x3 arena, the through-line was never the trophy &mdash; it was the refusal to believe the final whistle had blown.</p>
-        </div>
-      </div>
-      <aside class="np-side">
-        ${list('Milestones')}
-        ${list('National Team')}
-        ${list('Memorable Games')}
-      </aside>
+    <div class="np-cols">
+      <div class="na-kicker">${BASKETBALL.kicker}</div>
+      <h2 class="na-headline">The Game Is Never Truly Over</h2>
+      <div class="na-byline">Sports Desk &middot; A Life in Motion</div>
+      <div class="na-hr"></div>
+      <figure class="na-figure bw">
+        <img src="References/Poonno%20Basketball.jpg" alt="Poonno on the court" loading="eager" />
+        <figcaption>On the court for the Bangladesh National Team.</figcaption>
+      </figure>
+      <p class="drop">${quote.text}</p>
+      <p>From the U18 national side to the 3x3 arena, the through-line was never the trophy &mdash; it was the refusal to believe the final whistle had blown.</p>
+      ${list('Milestones')}${list('National Team')}${list('Memorable Games')}
     </div>
   </article>`;
 }
