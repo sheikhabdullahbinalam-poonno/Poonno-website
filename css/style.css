@@ -521,12 +521,23 @@ body {
   .case-detail { left: 16px; right: 16px; bottom: 16px; width: auto; }
 }
 
-/* ---- custom cursor (AT-style) ---- */
-#cursor, #cursor-dot { position: fixed; left: 0; top: 0; pointer-events: none; z-index: 300; }
-#cursor { width: 30px; height: 30px; margin: -15px 0 0 -15px; border: 1px solid rgba(245, 235, 220, 0.5); border-radius: 50%; transition: width 0.2s ease, height 0.2s ease, margin 0.2s ease, background 0.2s ease, border-color 0.2s ease; }
-#cursor.hot { width: 56px; height: 56px; margin: -28px 0 0 -28px; border-color: var(--firefly); background: rgba(255, 211, 122, 0.08); }
-#cursor.down { width: 22px; height: 22px; margin: -11px 0 0 -11px; }
-#cursor-dot { width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; border-radius: 50%; background: var(--cream); }
+/* ---- custom cursor (minimal flat outline — no glow, no blend, no shadow) ---- */
+#cursor, #cursor-dot {
+  position: fixed; left: 0; top: 0; pointer-events: none; z-index: 9999;
+  will-change: transform;
+}
+#cursor-dot {
+  width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; border-radius: 50%;
+  background: rgba(236, 230, 218, 0.8);
+}
+#cursor {
+  width: 28px; height: 28px; margin: -14px 0 0 -14px;
+  border: 1px solid rgba(236, 230, 218, 0.32); border-radius: 50%; background: none;
+  transition: width 0.3s cubic-bezier(0.23,1,0.32,1), height 0.3s cubic-bezier(0.23,1,0.32,1),
+              margin 0.3s cubic-bezier(0.23,1,0.32,1), border-color 0.3s ease;
+}
+#cursor.hot  { width: 46px; height: 46px; margin: -23px 0 0 -23px; border-color: rgba(236, 230, 218, 0.5); }
+#cursor.down { width: 20px; height: 20px; margin: -10px 0 0 -10px; }
 @media (hover: none), (prefers-reduced-motion: reduce) { #cursor, #cursor-dot { display: none; } }
 /* hide the native cursor only while the custom one is active */
 html.has-cursor, html.has-cursor * { cursor: none !important; }

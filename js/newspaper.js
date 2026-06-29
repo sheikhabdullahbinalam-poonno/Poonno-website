@@ -45,16 +45,18 @@ export class Newspaper {
         // normalize recenters the model via ITS position; wrap it so we can move
         // a holder freely without undoing that recentring (the train/tree pattern).
         normalize(np, { length: 1.4, align: 'none', ground: false });
+        const sheet = newsprintTex();   // replace the baked "Lorem Ipsum" print
         np.traverse((o) => {
           if (!o.isMesh) return;
           o.frustumCulled = false;
           o.material.side = THREE.DoubleSide;
-          o.material.color = new THREE.Color(0x6a6258);   // dim aged paper, lit only by the scene
+          o.material.color = new THREE.Color(0x8c8068);   // dim at rest (emissive ramp lights it on the fly)
           o.material.roughness = 0.95; o.material.metalness = 0;
+          o.material.map = sheet;
           // unlit at rest (#1); a gentle self-light ramps in ONLY as it sweeps up
           // to face the viewer, so the fill reads instead of going black.
           o.material.emissive = new THREE.Color(0xffffff);
-          o.material.emissiveMap = o.material.map;
+          o.material.emissiveMap = sheet;
           o.material.emissiveIntensity = 0;
           o.material.needsUpdate = true;
           this.heroMat = o.material;
@@ -153,5 +155,73 @@ export class Newspaper {
     this.hero.scale.setScalar(lerp(0.9, 3.3, ease(Math.min(1, Math.max(0, (k - 0.2) / 0.6)))));
     // catch the light as it turns to face you (keeps the fill readable, not black)
     if (this.heroMat) this.heroMat.emissiveIntensity = Math.max(0, (k - 0.5) / 0.5) * 0.7;
+  }
+}
+
+// ---- procedurally-drawn aged newsprint (replaces the model's "Lorem Ipsum") --
+let _newsprint = null;
+function newsprintTex() {
+  if (_newsprint) return _newsprint;
+  const w = 1024, h = 1320;
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const g = c.getContext('2d');
+  const ink = '#241a0f', M = 60;
+
+  // aged paper + uneven staining
+  g.fillStyle = '#d7c8a6'; g.fillRect(0, 0, w, h);
+  const grd = g.createLinearGradient(0, 0, 0, h);
+  grd.addColorStop(0, 'rgba(120,95,55,0.10)'); grd.addColorStop(0.5, 'rgba(0,0,0,0)'); grd.addColorStop(1, 'rgba(110,85,45,0.16)');
+  g.fillStyle = grd; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 5; i++) { g.fillStyle = `rgba(126,92,46,0.05)`; g.beginPath(); g.arc(Math.random() * w, Math.random() * h, 60 + Math.random() * 120, 0, 6.283); g.fill(); }
+
+  // masthead
+  g.fillStyle = ink; g.textAlign = 'center';
+  g.fillRect(M, 84, w - 2 * M, 5);
+  g.font = '700 78px Georgia, "Times New Roman", serif';
+  g.fillText('The Daily Adroit', w / 2, 168);
+  g.fillRect(M, 196, w - 2 * M, 5);
+  g.font = '600 19px Georgia, serif';
+  g.fillText('NIGHT EDITION   ·   EST. CURIOSITY   ·   No. 01', w / 2, 226);
+  g.fillRect(M, 244, w - 2 * M, 2);
+
+  // headline + byline
+  g.textAlign = 'left';
+  g.font = '700 70px Georgia, serif'; g.fillText('Who Is Poonno?', M, 332);
+  g.font = 'italic 24px Georgia, serif'; g.fillText('A Special Report · By the Editorial Desk', M, 372);
+  g.fillRect(M, 392, w - 2 * M, 1);
+
+  // layout: photo top-left, text wrapping; second column of text
+  const gap = 40, colW = (w - 2 * M - gap) / 2;
+  const px = M, py = 416, pw = colW, ph = 360;
+  const pg = g.createLinearGradient(px, py, px + pw, py + ph);
+  pg.addColorStop(0, '#6b6b6b'); pg.addColorStop(1, '#161616');
+  g.fillStyle = pg; g.fillRect(px, py, pw, ph);
+  g.fillStyle = 'rgba(255,255,255,0.05)';
+  for (let i = 0; i < 600; i++) { g.beginPath(); g.arc(px + Math.random() * pw, py + Math.random() * ph, Math.random() * 1.6, 0, 6.283); g.fill(); }
+  g.strokeStyle = ink; g.lineWidth = 1.5; g.strokeRect(px, py, pw, ph);
+  g.fillStyle = ink; g.font = '600 14px Georgia, serif'; g.fillText('THE MAN BEHIND THE JOURNEY', px, py + ph + 22);
+
+  fakeText(g, ink, px, py + ph + 44, colW, h - (py + ph + 44) - M);   // col 1 (below photo)
+  fakeText(g, ink, M + colW + gap, py, colW, h - py - M);             // col 2 (full)
+
+  _newsprint = new THREE.CanvasTexture(c);
+  _newsprint.colorSpace = THREE.SRGBColorSpace;
+  _newsprint.flipY = false;          // match the GLB's UV convention
+  _newsprint.anisotropy = 8;
+  return _newsprint;
+}
+
+// fine justified "text" lines (read as columns of type from any distance)
+function fakeText(g, ink, x, y, w, h, lh = 13) {
+  g.fillStyle = ink;
+  let yy = y;
+  while (yy < y + h - lh) {
+    const lines = 3 + Math.floor(Math.random() * 6);
+    for (let i = 0; i < lines && yy < y + h - lh; i++) {
+      const lw = (i === lines - 1) ? w * (0.3 + Math.random() * 0.45) : w * (0.9 + Math.random() * 0.08);
+      g.globalAlpha = 0.82; g.fillRect(x, yy, Math.min(lw, w), 2.4); g.globalAlpha = 1;
+      yy += lh;
+    }
+    yy += lh * 0.7;
   }
 }

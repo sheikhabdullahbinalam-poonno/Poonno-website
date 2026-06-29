@@ -1,20 +1,18 @@
 // ============================================================================
-//  cursor.js — an Active-Theory-style custom cursor: a dot that tracks exactly
-//  and a ring that follows with lag and grows over interactive elements. The
-//  native cursor is hidden only once this is active, and never on touch / reduced
-//  motion (so there's always a usable pointer).
+//  cursor.js — a minimal Noomo-style cursor: a small dot that tracks exactly and
+//  a thin ring that follows with lag and grows softly over interactive elements.
+//  No glow. Disabled on touch / reduced motion so there's always a usable pointer.
 // ============================================================================
 
-const HOT = 'a, button, .at-card, .nav-jump, #whistle-rope, .car-prev, .car-next, .case-link, .case-close, #mute-btn, #enter-btn, #nav-logo';
+const HOT = 'a, button, .at-card, .nav-jump, #whistle-rope, .car-prev, .car-next, .case-link, .case-close, #mute-btn, #enter-btn, #nav-logo, #read-next';
 
 export function initCursor() {
   const ring = document.getElementById('cursor');
   const dot = document.getElementById('cursor-dot');
   if (!ring || !dot) return;
-  // Custom cursor disabled — its glow/lag was problematic; use the native pointer.
-  ring.style.display = 'none'; dot.style.display = 'none';
-  return;
-  if (matchMedia('(hover: none)').matches || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (matchMedia('(hover: none)').matches || matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    ring.style.display = 'none'; dot.style.display = 'none'; return;
+  }
 
   let mx = window.innerWidth / 2, my = window.innerHeight / 2, rx = mx, ry = my;
 

@@ -45,9 +45,10 @@ export const CAMERA = { fov: 55, near: 0.1, far: 5000, damp: 3.0 };
 // HOLD bands use near-identical start/end positions so the camera truly stops.
 export const KEYFRAMES = [
   // ---- INTRO: platform → newspaper → read articles → board (train waits) ----
-  { t: 0.00, pos: [11.5, 3.0, -6],  look: [0.5, 2.0, -9] },   // T-view — standing square to the train
-  { t: 0.05, pos: [11.0, 2.1, 2.5], look: [7.0, 1.0, 3] },    // pan LEFT to the newspaper on the platform
-  { t: 0.10, pos: [9.1, 1.66, 4.4], look: [7.0, 1.05, 3] },   // focus settles as it lifts off
+  { t: 0.00,  pos: [11.5, 3.0, -6],  look: [0.5, 2.0, -9] },  // T-view — squared to the train
+  { t: 0.035, pos: [11.5, 3.0, -6],  look: [7.0, 1.3, 3] },   // PAN left in place — sweep the gaze to the newspaper
+  { t: 0.085, pos: [9.4, 1.75, 4.6], look: [7.0, 1.05, 3] },  // then DOLLY in & down — a low view of the paper
+  { t: 0.10,  pos: [9.1, 1.66, 4.4], look: [7.0, 1.05, 3] },  // hold low as it lifts off
   { t: 0.18, pos: [8.7, 1.6, 4.1],  look: [7.0, 1.1, 3] },    // it fills the frame → HTML article (HOLD start)
   { t: 0.40, pos: [8.6, 1.6, 4.0],  look: [7.0, 1.1, 3] },    // articles read behind the overlay (HOLD end)
   { t: 0.45, pos: [6.5, 2.3, 4.0],  look: [0.5, 1.8, -10] },  // overlay leaves → turn to the waiting train (board)
