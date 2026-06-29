@@ -241,6 +241,181 @@ function beaconAt(x, y, z, color, size = 0.7, intensity = 2.4) {
   return b;
 }
 
+// ============================================================================
+//  Cinematic code-built station (ref: References/Old Railway Station).
+//  A raised plank platform, a weathered plaster + timber-frame building with a
+//  slate-roofed clock tower and chimney, an open platform shelter, wrought-iron
+//  lamps with warm glow, and the station nameplate. One reusable builder serves
+//  both case-study stations (mirrored to whichever side the camera faces).
+// ============================================================================
+
+// --- shared aged textures (built once) ---
+let _plasterTex, _slateTex, _clockTexCache = {};
+function plasterTex() {
+  if (_plasterTex) return _plasterTex;
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const g = c.getContext('2d');
+  g.fillStyle = '#b3a78f'; g.fillRect(0, 0, 256, 256);                 // aged plaster base
+  for (let i = 0; i < 80; i++) {                                       // mottled staining
+    g.fillStyle = `rgba(${90 + Math.random() * 40},${78 + Math.random() * 36},${56 + Math.random() * 30},${0.05 + Math.random() * 0.10})`;
+    g.beginPath(); g.arc(Math.random() * 256, Math.random() * 256, 6 + Math.random() * 30, 0, 6.283); g.fill();
+  }
+  g.strokeStyle = 'rgba(40,30,20,0.22)'; g.lineWidth = 1;              // hairline cracks
+  for (let i = 0; i < 14; i++) {
+    g.beginPath(); let x = Math.random() * 256, y = Math.random() * 256; g.moveTo(x, y);
+    for (let k = 0; k < 4; k++) { x += (Math.random() - 0.5) * 40; y += Math.random() * 26; g.lineTo(x, y); } g.stroke();
+  }
+  // a few exposed-brick patches (worn plaster) near the base
+  for (let i = 0; i < 5; i++) {
+    const bx = Math.random() * 200, by = 150 + Math.random() * 90;
+    g.fillStyle = 'rgba(120,72,48,0.30)'; g.fillRect(bx, by, 24 + Math.random() * 30, 16 + Math.random() * 18);
+  }
+  _plasterTex = new THREE.CanvasTexture(c); _plasterTex.wrapS = _plasterTex.wrapT = THREE.RepeatWrapping;
+  _plasterTex.colorSpace = THREE.SRGBColorSpace; return _plasterTex;
+}
+function slateTex() {
+  if (_slateTex) return _slateTex;
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const g = c.getContext('2d');
+  g.fillStyle = '#3c434c'; g.fillRect(0, 0, 128, 128);                 // dark slate
+  for (let r = 0; r < 8; r++) for (let col = 0; col < 8; col++) {      // tile grid, offset rows
+    const ox = (r % 2) * 8;
+    g.fillStyle = `rgb(${48 + Math.random() * 22},${54 + Math.random() * 22},${62 + Math.random() * 22})`;
+    g.fillRect(col * 16 + ox - 8, r * 16, 15, 15);
+    g.strokeStyle = 'rgba(12,16,22,0.6)'; g.lineWidth = 1; g.strokeRect(col * 16 + ox - 8, r * 16, 15, 15);
+  }
+  _slateTex = new THREE.CanvasTexture(c); _slateTex.wrapS = _slateTex.wrapT = THREE.RepeatWrapping;
+  _slateTex.colorSpace = THREE.SRGBColorSpace; return _slateTex;
+}
+function clockTex() {
+  if (_clockTexCache.t) return _clockTexCache.t;
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const g = c.getContext('2d'); const R = 64;
+  g.fillStyle = '#ece3cf'; g.beginPath(); g.arc(R, R, 58, 0, 6.283); g.fill();   // cream face
+  g.strokeStyle = '#1c1610'; g.lineWidth = 4; g.beginPath(); g.arc(R, R, 58, 0, 6.283); g.stroke();
+  g.strokeStyle = '#1c1610'; g.lineWidth = 3;
+  for (let i = 0; i < 12; i++) { const a = i / 12 * 6.283; g.beginPath();
+    g.moveTo(R + Math.cos(a) * 50, R + Math.sin(a) * 50); g.lineTo(R + Math.cos(a) * 44, R + Math.sin(a) * 44); g.stroke(); }
+  g.lineWidth = 4; g.beginPath(); g.moveTo(R, R); g.lineTo(R + Math.cos(-1.1) * 28, R + Math.sin(-1.1) * 28); g.stroke(); // hour ~2 o'clock
+  g.lineWidth = 3; g.beginPath(); g.moveTo(R, R); g.lineTo(R + Math.cos(-2.6) * 42, R + Math.sin(-2.6) * 42); g.stroke(); // minute
+  _clockTexCache.t = new THREE.CanvasTexture(c); _clockTexCache.t.colorSpace = THREE.SRGBColorSpace; return _clockTexCache.t;
+}
+
+function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, name = '' }) {
+  const G = new THREE.Group(); scene.add(G);
+  const add = (m) => { m.frustumCulled = false; G.add(m); return m; };
+  const X = (d) => trackX + side * d;                 // d = distance out from the track
+  const faceTrack = side > 0 ? -Math.PI / 2 : Math.PI / 2;  // a +X face turns toward the track
+
+  // --- materials (weathered, moonlit) ---
+  const plaster = new THREE.MeshStandardMaterial({ map: plasterTex(), roughness: 0.97, metalness: 0 });
+  const slate   = new THREE.MeshStandardMaterial({ map: slateTex(), color: 0xc4ccd6, roughness: 0.62, metalness: 0.18 });
+  const timber  = new THREE.MeshStandardMaterial({ color: 0x241910, roughness: 0.92, metalness: 0.02 });
+  const iron    = new THREE.MeshStandardMaterial({ color: 0x14130f, roughness: 0.5, metalness: 0.6 });
+  const stone   = new THREE.MeshStandardMaterial({ color: 0x5b5346, roughness: 0.95, metalness: 0 });
+  const winGlow = new THREE.MeshStandardMaterial({ color: 0x160e04, emissive: 0xffb255, emissiveIntensity: 1.3, roughness: 0.6 });
+
+  const box = (w, h, dp, mat, d, y, dz, ry = 0) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, dp), mat);
+    m.position.set(X(d), y, z + dz); m.rotation.y = ry; return add(m);
+  };
+
+  // ---- raised plank platform (base slab + individual boards with grain gaps) ----
+  const PLEN = 42, deckTop = 0.92, nearD = 2.6, farD = 10.6, midD = (nearD + farD) / 2, pW = farD - nearD;
+  box(pW, deckTop, PLEN, stone, midD, deckTop / 2, 0);                 // stone substructure
+  for (let d = nearD + 0.25; d < farD; d += 0.5) {                    // deck boards, running along z
+    const tone = 0x5a4530 + Math.floor(Math.random() * 0x18) * 0x100;
+    const m = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.1, PLEN),
+      new THREE.MeshStandardMaterial({ color: tone, roughness: 0.95, metalness: 0 }));
+    m.position.set(X(d), deckTop + 0.05, z); add(m);
+  }
+  box(0.18, 0.5, PLEN, timber, nearD - 0.02, deckTop - 0.1, 0);        // timber edge fascia (track side)
+  for (let dz = -PLEN / 2 + 2; dz <= PLEN / 2 - 2; dz += 5)            // trestle supports under the edge
+    box(0.3, deckTop, 0.3, timber, nearD + 0.2, deckTop / 2, dz);
+
+  // ---- station building: plaster walls, timber framing, slate gable, chimney ----
+  const bD = 13.5, bFront = 10.2, bW = 8.5, bH = 5.0;                  // body
+  box(7, bH, bW, plaster, bD, bH / 2, 0);
+  // exposed corner stonework (quoins) at the track-facing front
+  box(0.5, bH, 0.5, stone, bFront, bH / 2, -bW / 2 + 0.25);
+  box(0.5, bH, 0.5, stone, bFront, bH / 2, bW / 2 - 0.25);
+  // timber framing on the front wall (Tudor beams)
+  const beam = (w, h, d, y, dz, ry = 0) => box(w, h, d, timber, bFront - 0.02, y, dz, ry);
+  beam(0.22, bH, 0.22, bH / 2, -2.6); beam(0.22, bH, 0.22, bH / 2, 0); beam(0.22, bH, 0.22, bH / 2, 2.6); // verticals
+  beam(0.22, 0.22, bW, bH - 0.3, 0); beam(0.22, 0.22, bW, 2.4, 0);     // horizontals (across z → along wall)
+  // gable roof (two slate slopes)
+  for (const s of [-1, 1]) {
+    const slope = box(7.6, 0.22, 5.6, slate, bD, bH + 1.3, 0, 0);
+    slope.rotation.z = s * 0.62; slope.position.set(X(bD) + side * s * 1.55, bH + 1.35, z);
+    slope.scale.z = bW / 5.6;
+  }
+  box(7.0, 1.6, 0.3, plaster, bD, bH + 0.8, -bW / 2 + 0.15);           // gable end fill (front)
+  box(7.0, 1.6, 0.3, plaster, bD, bH + 0.8, bW / 2 - 0.15);
+  // chimney + cap
+  box(0.9, 2.2, 0.9, stone, bD + 1.6, bH + 1.6, -2.2);
+  box(1.2, 0.3, 1.2, slate, bD + 1.6, bH + 2.8, -2.2);
+
+  // door (recessed, with a warm glow within) + two lit windows on the front
+  box(1.5, 3.0, 0.2, timber, bFront - 0.05, 1.5, 0);
+  box(1.1, 2.5, 0.1, winGlow, bFront - 0.12, 1.45, 0);
+  for (const dz of [-2.8, 2.8]) {
+    box(1.3, 1.5, 0.18, timber, bFront - 0.04, 2.7, dz);               // window frame
+    box(1.0, 1.2, 0.1, winGlow, bFront - 0.12, 2.7, dz);              // warm pane
+  }
+
+  // ---- clock tower at the front corner: tall shaft + pyramid slate roof + clock ----
+  const tD = bFront + 0.4, tDZ = -bW / 2 - 0.6, tH = 8.2, tW = 2.6;
+  box(tW, tH, tW, plaster, tD, tH / 2, tDZ);
+  box(0.26, tH, 0.26, timber, tD - tW / 2 + 0.1, tH / 2, tDZ - tW / 2 + 0.1); // corner beams
+  box(0.26, tH, 0.26, timber, tD - tW / 2 + 0.1, tH / 2, tDZ + tW / 2 - 0.1);
+  const spire = new THREE.Mesh(new THREE.ConeGeometry(2.05, 2.4, 4), slate);  // pyramidal slate cap
+  spire.position.set(X(tD), tH + 1.2, z + tDZ); spire.rotation.y = Math.PI / 4; add(spire);
+  const finial = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.7, 6), iron);
+  finial.position.set(X(tD), tH + 2.6, z + tDZ); add(finial);
+  // clock face on the track-facing side, faintly self-lit
+  const clock = new THREE.Mesh(new THREE.CircleGeometry(0.95, 32),
+    new THREE.MeshStandardMaterial({ map: clockTex(), emissive: 0xffffff, emissiveMap: clockTex(), emissiveIntensity: 0.35, roughness: 0.6, side: THREE.DoubleSide }));
+  clock.position.set(X(tD - tW / 2 - 0.02), 6.2, z + tDZ); clock.rotation.y = faceTrack; add(clock);
+
+  // ---- open platform shelter (posts + pitched slate roof) further along ----
+  const shZ = 11, shD = 6.2, shW = 5;
+  for (const px of [shD - 1.6, shD + 1.6]) for (const pz of [-shW / 2, shW / 2])
+    box(0.18, 2.5, 0.18, timber, px, deckTop + 1.25, shZ + pz);       // four posts
+  box(4.6, 0.16, shW + 0.6, timber, shD, deckTop + 2.5, shZ);          // lintel/ceiling
+  for (const s of [-1, 1]) {                                           // pitched roof
+    const r = box(2.9, 0.18, shW + 1, slate, shD, deckTop + 2.95, shZ, 0);
+    r.rotation.z = s * 0.5; r.position.set(X(shD) + side * s * 1.25, deckTop + 3.0, z + shZ);
+  }
+  box(4.4, 0.4, 0.12, timber, shD - 1.45, deckTop + 2.3, shZ + shW / 2 + 0.3); // valance board
+
+  // bench against the building
+  box(1.8, 0.12, 0.5, timber, bFront - 1.0, deckTop + 0.55, 4.5);
+  box(1.8, 0.5, 0.1, timber, bFront - 0.78, deckTop + 0.8, 4.7);
+
+  // ---- wrought-iron lamp posts with warm lanterns + light pools ----
+  for (const dz of [-12, 0, 12]) {
+    const lx = X(nearD + 0.5), ly0 = deckTop;
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.1, 3.4, 10), iron);
+    post.position.set(lx, ly0 + 1.7, z + dz); add(post);
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.5), iron);
+    arm.position.set(lx, ly0 + 3.3, z + dz); add(arm);
+    const lantern = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.5, 0.34),
+      new THREE.MeshStandardMaterial({ color: 0x3a2a12, emissive: 0xffb45a, emissiveIntensity: 0.7, roughness: 0.5 }));
+    lantern.position.set(lx, ly0 + 3.25, z + dz); add(lantern);
+    const cap = new THREE.Mesh(new THREE.ConeGeometry(0.26, 0.24, 4), iron);
+    cap.position.set(lx, ly0 + 3.6, z + dz); cap.rotation.y = Math.PI / 4; add(cap);
+    const L = new THREE.PointLight(0xffb45a, 4.5, 17, 2);   // warm pool, tight falloff (no façade flood)
+    L.position.set(lx, ly0 + 3.2, z + dz); add(L);
+  }
+  // soft warm fill from the building windows so the façade reads at night
+  const fill = new THREE.PointLight(0xffc070, 3.2, 22, 2);
+  fill.position.set(X(bFront - 1), 2.6, z); add(fill);
+
+  // nameplate hung at the platform edge, facing the track
+  G.add(makeNameplate(name, X(nearD + 0.1), 3.0, z - 1, trackX, z - 1, 5.4));
+  return G;
+}
+
 // ---- platform, canopy, stations, finale tree --------------------------------
 function addLandmarks(scene) {
   // Start platform beside the track (centreline x≈0), with a clear gap.
@@ -265,13 +440,10 @@ function addLandmarks(scene) {
     lamp.position.set(5.5, 4.3, pz); scene.add(lamp);
   }
 
-  // Creative Origins station (ember) — platform +X side, building set back.
-  block(scene, { x: 10, y: 0.4, z: -340, w: 14, h: 0.8, d: 34, color: 0x33383D, beacon: false });
-  block(scene, { x: 16, y: 2.5, z: -340, w: 6, h: 5, d: 10, color: 0x394A57, beaconColor: PALETTE.ember });
-
-  // Unilever station (steel-blue) — platform −X side (track x≈−5), building back.
-  block(scene, { x: -13, y: 0.4, z: -720, w: 14, h: 0.8, d: 30, color: 0x33383D, beacon: false });
-  block(scene, { x: -18, y: 2.2, z: -720, w: 6, h: 4, d: 10, color: 0x394A57, beaconColor: PALETTE.haze });
+  // Creative Origins — cinematic station on the +X side (camera looks right).
+  buildStation(scene, { z: -340, side: 1, trackX: 0, accent: PALETTE.ember, name: 'CREATIVE ORIGINS' });
+  // Unilever Years — same station mirrored to the −X side (track x≈−5).
+  buildStation(scene, { z: -720, side: -1, trackX: -5, accent: PALETTE.haze, name: 'UNILEVER YEARS' });
 
   // Finale: a step-down platform bridges from the train's stop (z≈−793, behind
   // the camera) forward to the great tree (z≈−825). No station here — just the tree.
@@ -468,10 +640,9 @@ function junctionMarker(scene, x, z, signalColor) {
 }
 
 // ---- station nameplates (§6.6, ref Name plate.webp) -------------------------
-function addNameplates(scene) {
-  scene.add(makeNameplate('CREATIVE ORIGINS', 10.2, 3.0, -344, 4.6, -337, 5.5));
-  scene.add(makeNameplate('UNILEVER YEARS', -12, 3.0, -720, -7, -715, 6));
-}
+// Nameplates are now placed by buildStation() at each platform edge; this is a
+// no-op kept so buildWorld()'s call site stays unchanged.
+function addNameplates() {}
 
 function makeNameplate(name, px, py, pz, faceX, faceZ, w = 6) {
   const g = new THREE.Group();
