@@ -391,7 +391,7 @@ function addTrack(scene) {
   buildRealTrack(scene, [[1.5, -789], [2, -791.5], [2, -793]]);
 
   junctionMarker(scene, 0, -400, PALETTE.ember);   // V
-  junctionMarker(scene, 1.5, -789, PALETTE.moss);  // Y
+  junctionMarker(scene, 1.5, -789, PALETTE.ember); // Y — warm lit lamps, same as the V crossing (moss was too dark to read as lit)
 }
 
 function buildRealTrack(scene, pts2d, { gauge = 0.7 } = {}) {
