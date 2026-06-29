@@ -223,7 +223,11 @@ function animate() {
     }
   }
   train.update(t, dt);
-  windowCam(t);                  // run-2: ride at the carriage window, gaze at the moon
+  // windowCam DISABLED: it overrode the camera across t0.700–0.748 — exactly the
+  // moon-gaze region the rig spline now handles — yanking position/orientation
+  // toward a separate carriage-window shot and causing the jerk. One smooth
+  // source of camera truth (the rig) owns the moon gaze now.
+  // windowCam(t);
   sky.update(dt);
   // idle rumble + swell with the train's speed, boosted through the speed beat
   audio.setRumbleLevel(Math.min(1, 0.4 + 0.42 * train.speed + 0.35 * jerkAmp(t)));
