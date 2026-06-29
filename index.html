@@ -68,9 +68,15 @@
     <a id="nav-logo" href="#top" aria-label="Poonno — back to top">
       <span class="sig-mask" role="img" aria-label="Poonno"></span>
     </a>
-    <button id="whistle-rope" type="button" aria-label="Pull the whistle rope">
-      <span class="rope-line"></span>
-      <span class="rope-handle"></span>
+    <button id="whistle-rope" type="button" aria-label="Pull the whistle rope to sound it">
+      <span class="rope-mount"></span>
+      <span class="rope-cord"></span>
+      <span class="rope-knot"></span>
+      <span class="rope-pull">
+        <span class="pull-ring"></span>
+        <span class="pull-grip"></span>
+        <span class="pull-tip"></span>
+      </span>
     </button>
     <button id="nav-burger" type="button" aria-label="Menu" aria-expanded="false">&#9776;</button>
     <div id="nav-links">
@@ -113,6 +119,12 @@
 
   <!-- Board-the-train prompt (Scene 4) -->
   <div id="board-prompt" aria-hidden="true"><span>Board the Train to Explore</span></div>
+
+  <!-- Pull-the-whistle invitation — between boarding and the first station -->
+  <div id="whistle-hint" aria-hidden="true">
+    <span class="wh-arrow"></span>
+    <span class="wh-label">Pull the cord to sound the whistle</span>
+  </div>
 
   <!-- Station-approach announcement overlay (before each station) -->
   <div id="station-overlay" aria-hidden="true"></div>

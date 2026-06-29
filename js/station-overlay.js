@@ -5,10 +5,10 @@
 // ============================================================================
 
 // Each window sits AFTER its lead-in beat and ends BEFORE the station arrives:
-//  - Creative: after the board prompt (gone ~0.482) and before arrival (~0.548)
+//  - Creative: after the pull-the-whistle hint (gone ~0.503) and before arrival (~0.548)
 //  - Unilever: after the moon-gaze (gone ~0.752) and before arrival (~0.804)
 const STATIONS = [
-  { t0: 0.495, t1: 0.545, name: 'Creative Origins', tag: 'The beginnings of a creative pursuit' },
+  { t0: 0.505, t1: 0.545, name: 'Creative Origins', tag: 'The beginnings of a creative pursuit' },
   { t0: 0.738, t1: 0.782, name: 'Unilever Years',   tag: 'Projects, problems, and the pursuit of better solutions' },
 ];
 

@@ -19,7 +19,7 @@ const U = {
   out1: 0.430,              // flutter out completes
 };
 
-let overlay, wrap, page1, vignette, board, guide, guideLabel, built = false;
+let overlay, wrap, page1, vignette, board, guide, guideLabel, whistleHint, whistleRope, built = false;
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function masthead() {
@@ -86,6 +86,8 @@ export function initNews() {
   page1 = overlay.querySelector('#news-page-1');
   vignette = overlay.querySelector('.news-vignette');
   board = document.getElementById('board-prompt');
+  whistleHint = document.getElementById('whistle-hint');
+  whistleRope = document.getElementById('whistle-rope');
   guide = document.getElementById('read-guide');
   guideLabel = guide && guide.querySelector('.rg-label');
   const next = document.getElementById('read-next');
@@ -106,6 +108,21 @@ export function updateNews(t) {
     board.style.opacity = op.toFixed(3);
     board.style.filter = op < 0.98 ? `blur(${((1 - op) * 8).toFixed(1)}px)` : 'none';
     board.classList.toggle('show', op > 0.5);   // underline accent
+  }
+
+  // Pull-the-whistle invitation — lives in the gap AFTER "Board the Train" has
+  // fully faded (~0.482) and BEFORE the first "Next Station" overlay (~0.505).
+  // Scroll-driven; once the viewer actually pulls the cord it dismisses for good.
+  if (whistleHint) {
+    const wIn = clamp((t - 0.482) / 0.006, 0, 1);
+    const wOut = clamp((0.503 - t) / 0.005, 0, 1);
+    let wop = Math.max(0, Math.min(wIn, wOut));
+    if (window.__whistled) wop = 0;             // already sounded — no need to ask
+    whistleHint.style.opacity = wop.toFixed(3);
+    whistleHint.style.transform = `translateX(-50%) translateY(${((1 - wop) * -6).toFixed(1)}px)`;
+    whistleHint.setAttribute('aria-hidden', wop > 0.5 ? 'false' : 'true');
+    // make the rope gently sway to draw the eye while the hint is up
+    if (whistleRope) whistleRope.classList.toggle('invite', wop > 0.25 && !window.__whistled);
   }
 
   // Reading guide (next + scroll hint) — visible while a page is settled to read,

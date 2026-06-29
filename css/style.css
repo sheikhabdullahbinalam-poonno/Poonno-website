@@ -133,30 +133,110 @@ body {
 #mute-btn { font-size: 15px; opacity: 0.7; }
 #mute-btn.is-muted .mute-ico { opacity: 0.4; text-decoration: line-through; }
 
-/* Whistle rope — centered hanging pull */
+/* Whistle rope — a detailed hanging pull: ceiling mount, braided cord, knot,
+   brass ring + turned-wood handle + tassel. Pivots from the ceiling on pull. */
 #whistle-rope {
   position: absolute;
   left: 50%; top: 0;
   transform: translateX(-50%);
   background: none; border: 0; cursor: pointer;
   display: flex; flex-direction: column; align-items: center;
-  padding: 0;
+  padding: 0 8px 8px;
+  transform-origin: 50% 0;            /* swing from the ceiling */
 }
-#whistle-rope .rope-line {
-  width: 2px; height: 34px;
-  background: linear-gradient(var(--rust), #b9894f);
+/* the ceiling anchor the cord hangs from */
+#whistle-rope .rope-mount {
+  width: 10px; height: 4px; border-radius: 0 0 3px 3px;
+  background: linear-gradient(#3a3026, #221a12);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+/* braided cord — the repeating diagonal gradient reads as twisted fibres */
+#whistle-rope .rope-cord {
+  width: 4px; height: 30px;
+  background:
+    repeating-linear-gradient(48deg, #8a5a32 0 2px, #6b4424 2px 4px, #a9763f 4px 6px);
   border-radius: 2px;
+  box-shadow: inset -1px 0 1px rgba(0,0,0,0.4), inset 1px 0 1px rgba(255,210,150,0.18);
 }
-#whistle-rope .rope-handle {
-  width: 16px; height: 22px;
-  margin-top: -2px;
-  border-radius: 8px;
-  background: radial-gradient(circle at 40% 30%, var(--ember), var(--rust));
-  box-shadow: 0 0 10px rgba(244,162,89,0.35);
-  transition: transform 0.12s ease;
+/* knot where the cord meets the handle */
+#whistle-rope .rope-knot {
+  width: 9px; height: 9px; margin-top: -1px; border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #b9824a, #5e3c20);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.45);
 }
-#whistle-rope:hover .rope-handle { transform: translateY(3px) scale(1.06); }
-#whistle-rope:active .rope-handle { transform: translateY(7px) scale(1.04); }
+#whistle-rope .rope-pull {
+  display: flex; flex-direction: column; align-items: center;
+  transition: transform 0.14s cubic-bezier(0.34,1.56,0.64,1);
+}
+/* polished brass ring linking knot to grip */
+#whistle-rope .pull-ring {
+  width: 12px; height: 12px; margin-top: -1px;
+  border-radius: 50%;
+  border: 2.5px solid transparent;
+  background:
+    linear-gradient(#1b140c, #1b140c) padding-box,
+    linear-gradient(160deg, #f6d79a, #b07d31 55%, #6e4a18) border-box;
+  box-shadow: 0 0 6px rgba(244,200,120,0.3);
+}
+/* turned-wood handle grip with a vertical sheen */
+#whistle-rope .pull-grip {
+  width: 13px; height: 26px; margin-top: -1px;
+  border-radius: 6px / 7px;
+  background:
+    linear-gradient(90deg, #3a2615 0%, #7d512b 38%, #b07c4a 52%, #6b4324 70%, #321f10 100%);
+  box-shadow: inset 0 6px 6px rgba(255,214,160,0.18), inset 0 -7px 7px rgba(0,0,0,0.5),
+              0 2px 6px rgba(0,0,0,0.5);
+}
+/* rounded tassel cap at the very bottom, faintly ember-lit */
+#whistle-rope .pull-tip {
+  width: 16px; height: 11px; margin-top: -3px;
+  border-radius: 0 0 9px 9px;
+  background: radial-gradient(circle at 50% 20%, var(--ember), var(--rust) 70%, #4a2a16);
+  box-shadow: 0 0 12px rgba(244,162,89,0.4);
+}
+/* pull feedback — the handle assembly drops on hover/press */
+#whistle-rope:hover .rope-pull { transform: translateY(3px); }
+#whistle-rope:active .rope-pull,
+#whistle-rope.pulled .rope-pull { transform: translateY(8px); }
+/* idle invitation — a gentle pendulum sway from the ceiling to catch the eye */
+#whistle-rope.invite { animation: ropeSway 2.4s ease-in-out infinite; }
+@keyframes ropeSway {
+  0%, 100% { transform: translateX(-50%) rotate(-3.2deg); }
+  50%      { transform: translateX(-50%) rotate(3.2deg); }
+}
+
+/* Pull-the-whistle hint — small top-centre label with an arrow up to the rope */
+#whistle-hint {
+  position: fixed; left: 50%; top: 70px;
+  transform: translateX(-50%);
+  z-index: 46; pointer-events: none;
+  display: flex; flex-direction: column; align-items: center; gap: 7px;
+  opacity: 0; will-change: opacity, transform;
+  text-align: center;
+}
+#whistle-hint .wh-arrow {
+  width: 12px; height: 12px;
+  border-left: 1.5px solid var(--firefly);
+  border-top: 1.5px solid var(--firefly);
+  transform: rotate(45deg);            /* chevron pointing UP to the rope */
+  opacity: 0.9; animation: whBob 1.5s ease-in-out infinite;
+}
+#whistle-hint .wh-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px; letter-spacing: 0.34em; text-transform: uppercase;
+  color: var(--cream);
+  padding: 7px 16px; border-radius: 999px;
+  background: rgba(8,12,18,0.5);
+  border: 1px solid rgba(244,162,89,0.22);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.4);
+  backdrop-filter: blur(6px);
+}
+@keyframes whBob { 0%,100% { transform: translateY(0) rotate(45deg); } 50% { transform: translateY(-4px) rotate(45deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  #whistle-rope.invite { animation: none; }
+  #whistle-hint .wh-arrow { animation: none; }
+}
 
 /* ---- HUD (debug; hidden unless toggled with 'h') ------------------------- */
 #hud {

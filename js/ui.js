@@ -50,9 +50,14 @@ export function initUI({ audio, goTo, onWhistle }) {
   document.querySelectorAll('.nav-jump').forEach((b) =>
     b.addEventListener('click', () => goTo(parseFloat(b.dataset.t)))
   );
-  document.getElementById('whistle-rope').addEventListener('click', () => {
+  const rope = document.getElementById('whistle-rope');
+  rope.addEventListener('click', () => {
     audio.whistle();
     if (onWhistle) onWhistle();
+    window.__whistled = true;                 // dismisses the pull-the-whistle hint
+    rope.classList.remove('invite');          // stop the inviting sway once pulled
+    rope.classList.add('pulled');             // brief pulled pose
+    setTimeout(() => rope.classList.remove('pulled'), 240);
   });
 
   // ---- mute control --------------------------------------------------------
