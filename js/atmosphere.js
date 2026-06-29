@@ -23,8 +23,8 @@ const HUBS = [
   { c: [3, 3.5, 0],      r: [18, 5, 20],  w: 0.32 }, // platform (densest)
   { c: [10, 3.5, -340],  r: [16, 5, 18],  w: 0.15 }, // creative origins
   { c: [-12, 3.5, -720], r: [16, 5, 18],  w: 0.15 }, // unilever
-  { c: [7, 6, -825],     r: [12, 8, 12],  w: 0.10 }, // finale tree
-  { c: [0, 4, -400],     r: [12, 6, 420], w: 0.28 }, // scattered along the long route
+  { c: [-5, 4.5, -555],  r: [13, 6, 130], w: 0.20 }, // Unilever forest — drifting fireflies among the moonlit trees
+  { c: [0, 4, -400],     r: [12, 6, 420], w: 0.22 }, // scattered along the long route
 ];
 
 export class Atmosphere {
@@ -116,9 +116,13 @@ export class Atmosphere {
     this.scene.add(this.points);
   }
 
-  // ---- fog sprites that drift in from the sides ---------------------------
+  // ---- fog sprites — REMOVED ----------------------------------------------
+  // The bright additive sprite banks read as a "curtain of white light", not fog.
+  // Depth now comes from the dark exponential scene fog + (later) a blur pass.
   _buildFog() {
     this.fogSprites = [];
+    return;
+    /* eslint-disable no-unreachable */
     // zCenter = the Z the sprite drifts around (so fade/wrap are local, not at 0).
     // fog:false so the mist banks aren't fogged away by scene.fog; a light
     // moonlit colour + higher opacity so they actually read as fog.
@@ -174,7 +178,7 @@ export class Atmosphere {
     halo(11, 6, -18, PALETTE.firefly, 3.0, 0.36);
     halo(11, 6, -340, PALETTE.ember, 3.5, 0.40);
     halo(-11, 6, -720, PALETTE.firefly, 3.5, 0.40);
-    halo(7.5, 12, -825, PALETTE.firefly, 4.0, 0.45);
+    // (removed the warm halo at the finale tree — it read as a yellow light in its middle)
 
     // Warm point lights so the platform + stations read (lit, not dark walls).
     const l1 = new THREE.PointLight(PALETTE.firefly, 3, 24, 2); l1.position.set(11, 6, -10); this.scene.add(l1);

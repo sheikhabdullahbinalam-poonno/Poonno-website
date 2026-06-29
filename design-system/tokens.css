@@ -1,0 +1,19 @@
+:root {
+  --font-heading: TheSeasons;
+  --font-body: TheSeasons;
+  --space-1: 1px;
+  --space-2: 5px;
+  --space-3: 8px;
+  --space-4: 10px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 26px;
+  --space-8: 30px;
+  --space-9: 37.44px;
+  --space-10: 38px;
+  --space-11: 38.4px;
+  --space-12: 47.84px;
+  --space-13: 56px;
+  --space-14: 74.88px;
+  --space-15: 124.8px;
+}

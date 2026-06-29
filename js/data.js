@@ -74,7 +74,7 @@ export const CREATIVE = {
 // §7 — Unilever Station: 4 cases (detail = Challenge / Approach / Impact / Tools / Key Learning).
 export const UNILEVER = {
   accent: 'steel',
-  nameplate: 'UNILEVER STATION',
+  nameplate: 'UNILEVER YEARS',
   projects: [
     {
       brand: 'Project Pigeon', title: 'Automated Retailer Communication', meta: 'PILLAR: ANALYTICS & AUTOMATION',
@@ -115,14 +115,14 @@ export const BIO = {
   kicker: 'ALL ABOARD',
   title: 'Who is Poonno?',
   paragraphs: [
-    "If you're looking for a neat, one-line description, I'm afraid you've boarded the wrong train.",
-    "Hi, I'm Poonno.",
-    "Over the years, I've been a creative director, a brand builder, a spreadsheet enthusiast (yes, they exist), a data nerd, a problem solver, and a basketball player playing at the highest level as part of the Bangladesh National Team who still refuses to believe the game is ever truly over.",
-    "Most people pick a track and stay on it. I got curious and explored a few.",
-    "The first station takes you through my creative roots—where ideas, storytelling, and late-night brainstorming sessions became real projects. The second station explores my journey through Unilever, where I learned how products move, brands grow, and data tells stories that creativity alone cannot.",
-    "And then comes the final station. The interesting thing is... it hasn't been built yet.",
-    "Maybe it's a startup. Maybe it's a new business challenge. Maybe it's a team trying to solve a problem worth solving. Maybe it's you!",
-    "What I do know is what I'll bring when I get there: the creativity to imagine, the commercial understanding to execute, the analytical mindset to measure, and the resilience to keep moving when things get tough. As basketball has always been the engine pulling me forward.",
-    "So take a look around. If our paths happen to cross at the next station, perhaps we'll build it together. All aboard.",
+    "If one were searching for a neat, one-line description of Poonno, they may have boarded the wrong train.",
+    "Over the years, Poonno has been many things: a creative director, a brand builder, a strategist, an analyst, and a member of the Bangladesh National Basketball Team. While these roles may appear unrelated, they are connected by a shared curiosity to understand how ideas are created, how they grow, and how they create impact.",
+    "Rather than choosing a single path and remaining on it, Poonno spent much of his journey exploring different tracks. His story begins in the world of creativity, where ideas, storytelling, design, and experimentation evolved into real projects. From building brand identities to crafting experiences and campaigns, it was here that he developed a fascination with turning abstract ideas into something people could see, feel, and remember.",
+    "The journey then moved through Unilever, where creativity met commercial reality. There, he gained firsthand experience in sales, distribution, category growth, and brand building at scale. It was a chapter that revealed how consumer behavior, data, execution, and strategy work together behind every successful brand. The experience broadened his perspective, teaching him that great ideas create possibilities, but disciplined execution creates results.",
+    "And then there is the final station.",
+    "The interesting thing is that it has not been built yet.",
+    "Whether it becomes a startup, a new business challenge, an ambitious team, or an opportunity still waiting beyond the horizon remains unknown. What is certain is what Poonno intends to bring when he arrives: the creativity to imagine, the commercial understanding to execute, the analytical mindset to measure, and the determination to keep moving forward when the path becomes difficult.",
+    "For now, the train continues its journey.",
+    "Passengers are invited to explore the stations ahead. And if paths happen to cross at the next stop, perhaps the next chapter will be built together.",
   ],
 };

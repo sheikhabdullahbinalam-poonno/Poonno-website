@@ -24,7 +24,7 @@
   <!-- Fonts: Fraunces (headings), Inter (UI/body), Sacramento (script fallback) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&family=Sacramento&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,ital,wght@9..144,0,400;9..144,0,600;9..144,1,400&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&family=Sacramento&display=swap" rel="stylesheet" />
 
   <link rel="stylesheet" href="css/style.css" />
 
@@ -75,8 +75,8 @@
     <button id="nav-burger" type="button" aria-label="Menu" aria-expanded="false">&#9776;</button>
     <div id="nav-links">
       <a id="cv-link" href="assets/cv/Sheikh_Abdullah_CV_2026.pdf" download>Download CV</a>
-      <button class="nav-jump" type="button" data-t="0.40">Creative Origins</button>
-      <button class="nav-jump" type="button" data-t="0.66">Unilever Station</button>
+      <button class="nav-jump" type="button" data-t="0.59">Creative Origins</button>
+      <button class="nav-jump" type="button" data-t="0.84">Unilever Years</button>
       <button class="nav-jump" type="button" data-t="1.0">Horizons Crossing</button>
       <button id="mute-btn" type="button" aria-label="Mute sound" aria-pressed="false">
         <span class="mute-ico">♪</span>
@@ -102,10 +102,20 @@
     <i class="ptick" style="top:96%"></i>
   </div>
 
-  <!-- Cab click-guidance (Phase 4) -->
-  <div id="cab-hint" class="cab-hint" aria-hidden="true">Two things in here know Poonno best — give them a tap.</div>
-  <div id="tip-shelf" class="tap-tip" aria-hidden="true">Tap to explore</div>
-  <div id="tip-poster" class="tap-tip" aria-hidden="true">Tap to explore</div>
+  <!-- Newspaper article overlay (Scenes 2–3) — populated by news.js -->
+  <div id="news-overlay" aria-hidden="true"></div>
+
+  <!-- Reading guide for the article pages (next + scroll hint) -->
+  <div id="read-guide" aria-hidden="true">
+    <span class="rg-label">Scroll to continue</span>
+    <button id="read-next" type="button" aria-label="Next page"><span>›</span></button>
+  </div>
+
+  <!-- Board-the-train prompt (Scene 4) -->
+  <div id="board-prompt" aria-hidden="true"><span>Board the Train to Explore</span></div>
+
+  <!-- Station-approach announcement overlay (before each station) -->
+  <div id="station-overlay" aria-hidden="true"></div>
 
   <!-- Project card carousel (Phase 6) -->
   <div id="cards-root" aria-hidden="true"></div>
@@ -115,7 +125,6 @@
     <div class="contact-inner">
       <div class="contact-kicker">Horizons Crossing</div>
       <h2 class="contact-head">Let's cross paths.</h2>
-      <p class="contact-sub">The final station hasn't been built yet. Maybe it's you.</p>
       <div class="contact-links">
         <a class="contact-link" href="https://www.linkedin.com/in/poonno/" target="_blank" rel="noopener">
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.98 3.5A2.5 2.5 0 1 1 5 8.5a2.5 2.5 0 0 1-.02-5zM3 9h4v12H3zM9 9h3.8v1.7h.05c.53-1 1.83-2.06 3.77-2.06 4.03 0 4.78 2.65 4.78 6.1V21h-4v-5.4c0-1.29-.02-2.95-1.8-2.95-1.8 0-2.07 1.4-2.07 2.85V21H9z"/></svg>

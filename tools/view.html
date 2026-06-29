@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>model viewer</title>
+<style>html,body{margin:0;height:100%;background:#0b1622;overflow:hidden}#info{position:fixed;left:8px;top:8px;color:#9fb4c8;font:12px monospace;white-space:pre;z-index:2}</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="info">loading…</div>
+<canvas id="c"></canvas>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+
+const params = new URLSearchParams(location.search);
+const MODEL = params.get('m') || 'assets/models/opt/locomotive.glb';
+const YAW = parseFloat(params.get('yaw') || '0.7');
+const PITCH = parseFloat(params.get('pitch') || '0.5');
+const GRID = params.get('grid') !== '0';
+
+const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true });
+renderer.setSize(innerWidth, innerHeight); renderer.setPixelRatio(1);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0b1622);
+const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.01, 5000);
+scene.add(new THREE.HemisphereLight(0xbfd2ec, 0x202a35, 1.4));
+const key = new THREE.DirectionalLight(0xffffff, 2.0); key.position.set(3, 5, 4); scene.add(key);
+const rim = new THREE.DirectionalLight(0x88aaff, 1.2); rim.position.set(-4, 2, -3); scene.add(rim);
+if (GRID) scene.add(new THREE.GridHelper(60, 60, 0x335577, 0x223344));
+scene.add(new THREE.AxesHelper(8)); // X=red Y=green Z=blue
+
+const draco = new DRACOLoader().setDecoderPath('https://unpkg.com/three@0.160.0/examples/jsm/libs/draco/');
+const loader = new GLTFLoader().setDRACOLoader(draco);
+loader.load(MODEL, (gltf) => {
+  const obj = gltf.scene; scene.add(obj);
+  const box = new THREE.Box3().setFromObject(obj);
+  const size = new THREE.Vector3(); box.getSize(size);
+  const center = new THREE.Vector3(); box.getCenter(center);
+  const r = size.length() / 2;
+  const dist = r / Math.sin(THREE.MathUtils.degToRad(22.5));
+  camera.position.set(
+    center.x + dist * Math.cos(PITCH) * Math.sin(YAW),
+    center.y + dist * Math.sin(PITCH),
+    center.z + dist * Math.cos(PITCH) * Math.cos(YAW),
+  );
+  camera.lookAt(center);
+  let meshes = 0; obj.traverse(o => { if (o.isMesh) meshes++; });
+  document.getElementById('info').textContent =
+    `${MODEL}\nsize  X=${size.x.toFixed(2)} Y=${size.y.toFixed(2)} Z=${size.z.toFixed(2)}\ncenter ${center.x.toFixed(1)},${center.y.toFixed(1)},${center.z.toFixed(1)}\nmeshes ${meshes}  (X=red Y=green Z=blue, grid=10)`;
+  renderer.render(scene, camera);
+  window.__ready = true;
+}, undefined, (e) => { document.getElementById('info').textContent = 'ERROR ' + (e?.message || e); window.__ready = true; });
+
+function loop(){ requestAnimationFrame(loop); renderer.render(scene, camera); }
+loop();
+</script>
+</body>
+</html>

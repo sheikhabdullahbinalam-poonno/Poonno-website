@@ -18,7 +18,7 @@ import { buildWorld } from './world.js';
 import { makeEnvironment } from './environment.js';
 import { CameraRig } from './camera-rig.js';
 import { Train } from './train.js';
-import { Sky } from './sky.js';
+import { Sky, MOON_POS } from './sky.js';
 import { Atmosphere } from './atmosphere.js';
 import { AudioManager } from './audio.js';
 import { initUI } from './ui.js';
@@ -28,6 +28,9 @@ import { initInteraction } from './interaction.js';
 import { initCards, updateCards } from './cards.js';
 import { initCursor } from './cursor.js';
 import { initFinale, updateFinale } from './finale.js';
+import { Newspaper, NEWS } from './newspaper.js';
+import { initNews, updateNews } from './news.js';
+import { initStationOverlay, updateStationOverlay } from './station-overlay.js';
 
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -138,9 +141,29 @@ function onWhistle() { if (!REDUCED) shudder = 0.22; }
 // train-jerk amplitude across the gaining-speed beat: rises with "speed", then
 // settles before the bird's-eye lift (§5.1, t .22 → .31).
 function jerkAmp(tt) {
-  if (tt < 0.22 || tt > 0.31) return 0;
-  if (tt < 0.285) return (tt - 0.22) / 0.065;
-  return Math.max(0, 1 - (tt - 0.285) / 0.025);
+  if (tt < 0.48 || tt > 0.55) return 0;
+  if (tt < 0.52) return (tt - 0.48) / 0.04;
+  return Math.max(0, 1 - (tt - 0.52) / 0.03);
+}
+
+// Run-2 "looking out at the moon": ride at the lead carriage's moon-side window
+// and gaze up at the moon while the magical forest streams past (eases in/out).
+const WIN0 = 0.735, WIN1 = 0.788;
+const _winPos = new THREE.Vector3(), _winLook = new THREE.Vector3(), _npLook = new THREE.Vector3();
+const _winM = new THREE.Matrix4(), _winQ = new THREE.Quaternion(), _UP = new THREE.Vector3(0, 1, 0);
+function windowCam(tt) {
+  if (frozen || tt <= WIN0 || tt >= WIN1) return;
+  const car = train.cars[1]; if (!car) return;
+  // smooth ease in/out across ~0.025 t at each edge
+  const ramp = Math.min((tt - WIN0) / 0.025, (WIN1 - tt) / 0.025, 1);
+  const k = ramp * ramp * (3 - 2 * ramp);
+  const cp = car.position;
+  _winPos.set(cp.x + 3.0, cp.y + 1.1, cp.z + 1.0);   // just outside the moon-side window
+  camera.position.lerp(_winPos, k);
+  _winLook.set(cp.x + 9, cp.y + 15, cp.z - 34);      // up & forward, toward the moon
+  _winM.lookAt(camera.position, _winLook, _UP);       // blend orientation too (no snap at edges)
+  _winQ.setFromRotationMatrix(_winM);
+  camera.quaternion.slerp(_winQ, k);
 }
 
 let frozen = null; // debug camera freeze (set via window.__poonno.freeze)
@@ -151,6 +174,9 @@ initUI({ audio, goTo, onWhistle });
 // --- cab interior + modals + interaction (Phase 4) --------------------------
 const cab = buildCab(scene);
 cab.group.visible = false;
+const newspaper = new Newspaper(scene);   // intro: aged newspaper flies in (replaces the cab)
+initNews();                               // crisp HTML article overlay (cross-fades from the paper)
+initStationOverlay();                     // "Next Station" approach announcements
 initModals({ audio, onOpen: (w) => cab.setHover(w), onClose: () => cab.setHover(null) });
 const interaction = initInteraction({ camera, cab, openModal, isModalOpen: isOpen, getT: () => t });
 initCards({
@@ -187,23 +213,31 @@ function animate() {
       camera.position.x += (Math.random() - 0.5) * shudder;
       camera.position.y += (Math.random() - 0.5) * shudder;
     }
-    // train-jerk: rhythmic vertical + lateral jolts (~0.45s beat) rising with speed
-    const ja = jerkAmp(t);
+    // train-jerk: subtle rhythmic sway, scaled by ACTUAL train speed so it stops
+    // dead when the viewer stops scrolling (no violent jumping at rest).
+    const ja = jerkAmp(t) * train.speed;
     if (ja > 0.001 && !REDUCED) {
-      const ph = (performance.now() / 450) * Math.PI * 2;
-      camera.position.y += Math.sin(ph) * 0.10 * ja;
-      camera.position.x += Math.sin(ph * 0.5 + 1.2) * 0.06 * ja;
+      const ph = (performance.now() / 560) * Math.PI * 2;
+      camera.position.y += Math.sin(ph) * 0.03 * ja;
+      camera.position.x += Math.sin(ph * 0.5 + 1.2) * 0.018 * ja;
     }
   }
   train.update(t, dt);
+  windowCam(t);                  // run-2: ride at the carriage window, gaze at the moon
   sky.update(dt);
   // idle rumble + swell with the train's speed, boosted through the speed beat
   audio.setRumbleLevel(Math.min(1, 0.4 + 0.42 * train.speed + 0.35 * jerkAmp(t)));
   atmosphere.update(dt);
 
-  const showCab = t > 0.10 && t < 0.30; // the cab "set" exists only while inside it
-  cab.group.visible = showCab;
-  if (showCab) cab.update(t, dt);
+  newspaper.update(t, camera);          // intro hero (self-gates to the early beats)
+  // during the lift/tumble the camera tracks the paper so it stays beautifully framed
+  if (!frozen && t > NEWS.rest && t < NEWS.gone && newspaper.hero) {
+    newspaper.hero.getWorldPosition(_npLook);
+    camera.lookAt(_npLook);
+  }
+  updateNews(t);                        // crisp article overlay + page-turn (scroll-driven)
+  updateStationOverlay(t);              // "Next Station" approach announcements
+  cab.group.visible = false;            // cab retired in favour of the newspaper intro
   interaction.update();
   updateCards(t);
   updateFinale(t);
@@ -231,6 +265,7 @@ window.__poonno = {
   freeze(px, py, pz, lx, ly, lz) { frozen = { p: new THREE.Vector3(px, py, pz), l: new THREE.Vector3(lx, ly, lz) }; },
   unfreeze() { frozen = null; },
   openModal, closeModal,
+  train, scene, camera, newspaper, // debug handles
 };
 
 // Honor ?t=<0..1> on load so screenshots can target a specific beat instantly.

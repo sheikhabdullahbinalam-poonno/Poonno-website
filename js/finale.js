@@ -11,5 +11,9 @@ export function initFinale() {
 }
 
 export function updateFinale(t) {
-  if (el) el.classList.toggle('show', t > 0.92);
+  if (!el) return;
+  const on = t > 0.945;
+  el.classList.toggle('show', on);           // staggers the rows in (CSS)
+  el.style.opacity = on ? '1' : '';          // guarantee the panel is visible (robust)
+  el.setAttribute('aria-hidden', on ? 'false' : 'true');
 }

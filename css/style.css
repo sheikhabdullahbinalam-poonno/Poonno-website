@@ -42,7 +42,7 @@ body {
   position: relative;
   z-index: 1;
   width: 100%;
-  height: 1100vh;
+  height: 2200vh;
   pointer-events: none;
 }
 
@@ -558,7 +558,7 @@ html.has-cursor, html.has-cursor * { cursor: none !important; }
 #contact.show .contact-links  { opacity: 1; transform: none; transition-delay: 0.60s; pointer-events: auto; }
 #contact.show .site-footer    { opacity: 0.6; transform: none; transition-delay: 0.85s; }
 
-.contact-kicker { font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 4px; text-transform: uppercase; color: var(--firefly); }
+.contact-kicker { font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 0.42em; text-transform: uppercase; color: var(--firefly); opacity: 0.85; }
 .contact-head { font-family: 'Fraunces', serif; font-weight: 600; font-size: clamp(36px, 6vw, 64px); line-height: 1.05; color: var(--cream); margin: 12px 0 0; }
 .contact-sub { font-family: 'Inter', sans-serif; font-size: 15px; color: var(--cream); opacity: 0.7; margin: 12px 0 0; }
 
@@ -619,3 +619,263 @@ html.has-cursor, html.has-cursor * { cursor: none !important; }
   .sig-mask { width: 60px; height: 34px; }
   #loader-sig { width: 230px; }
 }
+
+/* ============================================================================
+   Newspaper article overlay (Scenes 2–3) — news.js drives opacity/blur/turn.
+   ============================================================================ */
+#news-overlay {
+  position: fixed; inset: 0; z-index: 45; display: none;
+  pointer-events: none; opacity: 0;
+  will-change: opacity, filter;
+  /* keep the dark world faintly behind the paper */
+  background: radial-gradient(120% 120% at 50% 40%, rgba(10,16,26,0.35), rgba(6,9,16,0.78));
+}
+.news-vignette {
+  position: absolute; inset: 0; pointer-events: none;
+  box-shadow: inset 0 0 240px 60px rgba(6,8,14,0.85);
+}
+.news-wrap {
+  position: absolute; left: 50%; top: 50%;
+  width: min(92vw, 980px); height: min(92vh, 760px);
+  transform: translate(-50%, -50%);
+  margin: 0; /* JS sets translate/scale on an inner transform via the element below */
+  perspective: 2400px;
+}
+/* JS targets .news-wrap transform, so wrap the centering on a parent */
+#news-overlay > .news-wrap { left: 50%; top: 50%; }
+
+.news-page {
+  position: absolute; inset: 0;
+  transform-origin: left center; backface-visibility: hidden;
+  display: block; overflow: hidden;
+  padding: 30px 40px 26px;
+  color: #211a10; isolation: isolate;
+  background:
+    radial-gradient(140% 90% at 50% 0%, rgba(255,252,243,0.9), rgba(0,0,0,0) 60%),
+    repeating-linear-gradient(0deg, rgba(120,96,60,0.035) 0 2px, rgba(0,0,0,0) 2px 4px),
+    linear-gradient(160deg, #ece2cb 0%, #e3d6ba 55%, #d9caa9 100%);
+  box-shadow: 0 30px 80px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(120,96,60,0.25),
+              inset 0 0 70px rgba(120,96,60,0.18);
+  /* torn / worn edge */
+  -webkit-mask-image: radial-gradient(circle at 1px 1px, #000 99%, transparent 100%);
+  border-radius: 2px;
+}
+.news-page.page-under { z-index: 1; }
+.news-page.page-top   { z-index: 2; }
+.news-page::after { /* foxing / stain mottle */
+  content: ""; position: absolute; inset: 0; pointer-events: none; z-index: -1; opacity: 0.5;
+  background:
+    radial-gradient(60px 40px at 18% 88%, rgba(126,92,46,0.16), transparent 70%),
+    radial-gradient(90px 60px at 86% 14%, rgba(126,92,46,0.13), transparent 70%),
+    radial-gradient(50px 50px at 70% 80%, rgba(96,70,40,0.10), transparent 70%);
+}
+
+.nm-head { text-align: center; }
+.nm-rule { height: 3px; background: #211a10; margin: 2px 0; }
+.nm-rule.thin { height: 1px; }
+.nm-top { display: flex; justify-content: space-between; font-family: 'Space Mono', monospace;
+  font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; padding: 5px 2px 6px; color: #4a3a22; }
+.nm-name { font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: clamp(30px, 5vw, 52px);
+  letter-spacing: 0.01em; margin: 4px 0 6px; line-height: 1; color: #1a140c; }
+
+.na-kicker { font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.32em;
+  text-transform: uppercase; color: #8a3b1e; margin-top: 12px; }
+.na-headline { font-family: 'Fraunces', Georgia, serif; font-weight: 600;
+  font-size: clamp(28px, 4.6vw, 50px); line-height: 1.02; margin: 4px 0 6px; color: #15100a; }
+.na-byline { font-family: 'Fraunces', serif; font-style: italic; font-size: 13px; color: #5a4630; }
+.na-rule.thin { height: 1px; background: #211a10; opacity: 0.55; margin: 10px 0; }
+
+.na-figure { float: right; width: 38%; margin: 2px 0 10px 18px; }
+.na-figure img { width: 100%; display: block; border: 1px solid rgba(33,26,16,0.5);
+  filter: sepia(0.32) contrast(1.06) brightness(0.94) grayscale(0.18); }
+.na-figure figcaption { font-family: 'Space Mono', monospace; font-size: 9.5px; letter-spacing: 0.06em;
+  text-transform: uppercase; color: #5a4630; padding-top: 5px; }
+
+.na-body { columns: 2; column-gap: 26px; column-rule: 1px solid rgba(33,26,16,0.22);
+  font-family: 'Fraunces', Georgia, serif; font-size: 13.5px; line-height: 1.5; text-align: justify;
+  color: #271e12; overflow: hidden; }
+.na-body p { margin: 0 0 9px; }
+.na-body p.drop::first-letter { font-weight: 600; font-size: 3.1em; line-height: 0.78;
+  float: left; padding: 4px 7px 0 0; color: #15100a; }
+.na-body strong { font-weight: 600; }
+
+@media (max-width: 620px) {
+  .news-page { padding: 22px 20px; }
+  .na-body { columns: 1; }
+  .na-figure { width: 46%; }
+}
+
+/* ---- Wind streaks (newspaper fly-in) ----------------------------------- */
+#wind-streaks {
+  position: fixed; inset: 0; z-index: 44;
+  width: 100vw; height: 100vh;
+  pointer-events: none; opacity: 0;
+  transition: opacity 0.25s ease;
+  mix-blend-mode: screen;
+}
+
+/* ---- Board-the-train prompt (Scene 4) ---------------------------------- */
+#board-prompt {
+  position: fixed; left: 50%; top: 50%;
+  transform: translate(-50%, calc(-50% + 12px));
+  z-index: 46; pointer-events: none;
+  opacity: 0; filter: blur(8px);
+  will-change: opacity, filter, transform;
+  text-align: center;
+  transition: opacity 0.8s cubic-bezier(0.23,1,0.32,1),
+              filter 0.8s cubic-bezier(0.23,1,0.32,1),
+              transform 0.8s cubic-bezier(0.23,1,0.32,1);
+}
+#board-prompt.show { transform: translate(-50%, -50%); }
+#board-prompt span {
+  display: inline-block;
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 600;
+  font-size: clamp(26px, 4.4vw, 50px);
+  letter-spacing: 0.01em;
+  color: var(--cream);
+  text-shadow: 0 2px 30px rgba(0,0,0,0.6);
+}
+#board-prompt::after {
+  content: ""; display: block; width: 0; height: 1px; margin: 14px auto 0;
+  background: linear-gradient(90deg, transparent, var(--firefly), transparent);
+  transition: width 0.9s cubic-bezier(0.23,1,0.32,1);
+}
+#board-prompt.show { opacity: 1; filter: blur(0); }
+#board-prompt.show::after { width: 230px; }
+
+/* ---- Article redesign: B&W grain, front-page grid, sidebar, poster ------- */
+img.bw, .bw img { filter: grayscale(1) contrast(1.14) brightness(0.9); }
+.na-figure.bw, .poster-stage, .poster-hero, .poster-inset { position: relative; }
+.na-figure.bw::after, .poster-grain::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  mix-blend-mode: multiply; opacity: 0.42; z-index: 2;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='0.6'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+}
+
+/* --- Front page (Who is Poonno): main column + filler sidebar --- */
+.np-frontgrid { display: grid; grid-template-columns: 1.9fr 1fr; gap: 26px;
+  margin-top: 10px; height: calc(100% - 96px); }
+.np-main { min-width: 0; display: flex; flex-direction: column; }
+.na-headline.xl { font-size: clamp(34px, 5.4vw, 62px); margin: 2px 0 4px; }
+.na-figure.big { float: none; width: 100%; margin: 10px 0 12px; }
+.na-figure.big img { width: 100%; height: 32vh; max-height: 300px; object-fit: cover;
+  border: 1px solid rgba(33,26,16,0.55); }
+.na-body.two { columns: 2; column-gap: 24px; flex: 1; }
+
+.np-side { border-left: 1px solid rgba(33,26,16,0.35); padding-left: 20px;
+  display: flex; flex-direction: column; }
+.side-item { padding-bottom: 13px; margin-bottom: 13px; border-bottom: 1px solid rgba(33,26,16,0.2); }
+.side-kick { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 0.22em;
+  text-transform: uppercase; color: #8a3b1e; }
+.side-item h3 { font-family: 'Fraunces', serif; font-weight: 600; font-size: 19px;
+  margin: 3px 0 5px; color: #15100a; line-height: 1.08; }
+.side-item p { font-family: 'Fraunces', serif; font-size: 12px; line-height: 1.46; color: #34291b; margin: 0; }
+.side-rule { height: 2px; background: #211a10; margin: 2px 0 10px; }
+.side-foot { font-family: 'Fraunces', serif; font-style: italic; font-size: 13px; color: #5a4630; margin: 0; }
+
+/* --- Basketball POSTER (page 2) --- */
+.news-page.poster { padding: 0; overflow: hidden;
+  display: flex; flex-direction: column;
+  background:
+    radial-gradient(120% 70% at 50% 0%, rgba(255,252,243,0.85), rgba(0,0,0,0) 55%),
+    linear-gradient(165deg, #ece2cb, #ddcdaa 70%, #cdb98f); }
+.poster-skew { position: absolute; top: 16px; left: -8px; z-index: 5;
+  background: #1a140c; color: #f0e6cf; transform: rotate(-3.5deg);
+  font-family: 'Fraunces', serif; font-weight: 600; font-style: italic; font-size: 15px;
+  padding: 6px 16px; box-shadow: 3px 4px 0 rgba(0,0,0,0.25); }
+.poster-top { text-align: center; padding: 16px 30px 4px; }
+.poster-kick { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.3em;
+  text-transform: uppercase; color: #8a3b1e; }
+.poster-head { font-family: 'Fraunces', Georgia, serif; font-weight: 600; text-transform: uppercase;
+  font-size: clamp(28px, 4.8vw, 54px); line-height: 0.9; color: #14100a; letter-spacing: -0.01em; margin: 4px 0 0; }
+.poster-head span { color: #8a3b1e; }
+
+.poster-stage { position: relative; flex: 1; margin: 6px 24px 0; min-height: 0; }
+.poster-hero { position: absolute; left: 50%; bottom: 0; transform: translateX(-52%);
+  height: 100%; width: auto; max-width: 64%; object-fit: contain; object-position: bottom;
+  filter: grayscale(1) contrast(1.18) brightness(0.92) drop-shadow(0 10px 24px rgba(0,0,0,0.4)); }
+.poster-inset { position: absolute; width: 27%; aspect-ratio: 1/1; object-fit: cover;
+  border: 3px solid #f3ebd8; box-shadow: 0 6px 18px rgba(0,0,0,0.4); }
+.poster-inset.a { left: 0; top: 8%; transform: rotate(-3deg); }
+.poster-inset.b { right: 0; top: 26%; transform: rotate(3deg); }
+.poster-name { position: absolute; left: 0; right: 0; bottom: 12%; text-align: center; z-index: 4;
+  font-family: 'Fraunces', serif; font-weight: 600; font-size: clamp(26px, 4.6vw, 52px);
+  color: #f3ead4; text-shadow: 0 3px 10px rgba(0,0,0,0.7); letter-spacing: 0.02em; }
+.poster-name span { color: #e0a14a; font-size: 0.5em; }
+.poster-sub { position: absolute; left: 0; right: 0; bottom: 8%; text-align: center; z-index: 4;
+  font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.32em; color: #f0e6cf; }
+
+.poster-bottom { display: grid; grid-template-columns: 1fr 1fr 1.5fr; gap: 18px;
+  padding: 12px 30px 18px; border-top: 2px solid #1a140c; margin: 8px 24px 0; }
+.poster-col .pc-h { font-family: 'Space Mono', monospace; font-size: 9.5px; letter-spacing: 0.2em;
+  text-transform: uppercase; color: #8a3b1e; margin-bottom: 5px; }
+.poster-col p { font-family: 'Fraunces', serif; font-size: 12px; line-height: 1.4; color: #2a2012; margin: 0; }
+.poster-col.wide p { font-style: italic; }
+
+@media (max-width: 700px) {
+  .np-frontgrid { grid-template-columns: 1fr; } .np-side { display: none; }
+  .poster-bottom { grid-template-columns: 1fr; gap: 6px; }
+}
+
+/* ---- Display typography (Noomo-esque: The Seasons → Cormorant Garamond) --- */
+:root { --font-display: 'Cormorant Garamond', 'Fraunces', Georgia, serif; }
+
+/* ---- Station-approach announcement (#12) -------------------------------- */
+#station-overlay {
+  position: fixed; inset: 0; z-index: 47; display: none;
+  align-items: center; justify-content: center;
+  pointer-events: none; opacity: 0; will-change: opacity, filter;
+  background: radial-gradient(130% 130% at 50% 50%, rgba(6,10,16,0.5), rgba(3,6,11,0.9));
+}
+.so-inner { text-align: center; max-width: 780px; padding: 0 30px; }
+.so-kick { font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 0.42em;
+  text-transform: uppercase; color: var(--firefly); opacity: 0.85; margin-bottom: 16px; }
+.so-name { font-family: var(--font-display); font-weight: 500;
+  font-size: clamp(42px, 7.5vw, 92px); line-height: 0.98; color: var(--cream);
+  margin: 0 0 16px; letter-spacing: 0.005em; }
+.so-tag { font-family: 'Cormorant Garamond', serif; font-style: italic;
+  font-size: clamp(17px, 2.3vw, 24px); color: rgba(245,235,220,0.8); margin: 0 0 30px; }
+.so-explore span { font-family: 'Inter', sans-serif; font-size: 12px; letter-spacing: 0.32em;
+  text-transform: uppercase; color: var(--cream); }
+.so-explore::after { content: ""; display: block; height: 1px; width: 0; margin: 12px auto 0;
+  background: linear-gradient(90deg, transparent, var(--firefly), transparent);
+  transition: width 0.9s cubic-bezier(0.23,1,0.32,1); }
+#station-overlay.show .so-explore::after { width: 210px; }
+
+/* Apply the elegant display serif to the hero moments */
+.nm-name, .so-name, #board-prompt span, .contact-head { font-family: var(--font-display) !important; font-weight: 500; }
+.poster-head, .na-headline.xl { font-family: var(--font-display); font-weight: 600; }
+
+/* basketball article side lists (simple news style) */
+.side-kick { font-family: 'Space Mono', monospace; font-size: 9.5px; letter-spacing: 0.22em;
+  text-transform: uppercase; color: #8a3b1e; margin-bottom: 5px; }
+.na-list { margin: 3px 0 0; padding-left: 15px; font-family: 'Fraunces', Georgia, serif;
+  font-size: 12.5px; line-height: 1.5; color: #2f2517; }
+.na-list li { margin: 0 0 4px; }
+
+/* ---- Article reading guide (next + scroll hint) ------------------------ */
+#read-guide {
+  position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%);
+  z-index: 47; display: flex; flex-direction: column; align-items: center; gap: 10px;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.7s cubic-bezier(0.23,1,0.32,1);
+}
+#read-guide.show { opacity: 1; }
+#read-guide .rg-label {
+  font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.32em;
+  text-transform: uppercase; color: var(--cream); opacity: 0.7;
+}
+#read-next {
+  pointer-events: auto; cursor: pointer;
+  width: 46px; height: 46px; border-radius: 50%;
+  background: rgba(245,235,220,0.06); border: 1px solid rgba(245,235,220,0.35);
+  color: var(--cream); display: grid; place-items: center;
+  transition: transform 0.18s ease, background 0.25s ease, border-color 0.25s ease;
+  animation: rgbob 2.4s ease-in-out infinite;
+}
+#read-next span { font-size: 26px; line-height: 1; transform: rotate(90deg); display: block; opacity: 0.9; }
+#read-next:hover { background: rgba(255,211,122,0.12); border-color: var(--firefly); }
+#read-next:active { transform: scale(0.94); }
+@keyframes rgbob { 0%,100% { translate: 0 0; } 50% { translate: 0 5px; } }

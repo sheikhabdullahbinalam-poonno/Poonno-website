@@ -23,7 +23,7 @@ export const PALETTE = {
 };
 
 // §4 — Atmosphere
-export const FOG = { color: 0x33536F, density: 0.013 }; // lighter dusky haze so distance reads as MIST
+export const FOG = { color: 0x0C1822, density: 0.010 }; // dark night haze — distance recedes into darkness, not white
 export const SKY = { top: 0x0B1622, horizon: 0x294257 };  // horizon lifted to blend with the fog
 
 // §4 — Post-processing (UnrealBloom). Threshold nudged up from the spec's 0.2 so
@@ -35,7 +35,7 @@ export const RENDER = { exposure: 1.05, maxPixelRatio: 2 };
 
 // §5 — Scroll spacer height (kept in sync with css #scroll-spacer). The journey
 // is long now (forest runs between stations), so the scroll is deliberate.
-export const SCROLL = { spacerVH: 1100 };
+export const SCROLL = { spacerVH: 2200 };
 
 // §5 — Camera
 export const CAMERA = { fov: 55, near: 0.1, far: 5000, damp: 3.0 };
@@ -44,43 +44,45 @@ export const CAMERA = { fov: 55, near: 0.1, far: 5000, damp: 3.0 };
 // runs separate the stations; transits drop LOW so the viewer feels the forest.
 // HOLD bands use near-identical start/end positions so the camera truly stops.
 export const KEYFRAMES = [
-  { t: 0.00, pos: [12, 2.6, 4],     look: [0.0, 2.2, 2] },     // "T" view arrival (HOLD)
-  { t: 0.05, pos: [5, 2.3, 6],      look: [0.0, 2.0, -2] },    // board
-  { t: 0.12, pos: [0, 1.9, -12],    look: [-2.6, 1.8, -13.6] },// cab → shelf + poster (HOLD start)
-  { t: 0.22, pos: [0, 1.9, -12],    look: [2.0, 1.4, -15] },   // cab pan → gauges (HOLD end)
-  { t: 0.27, pos: [-0.3, 2.0, -13.0], look: [0.75, 2.05, -13.5] }, // PUSH toward the speedometer (inside, needle climbs)
-  { t: 0.31, pos: [2, 7, -34],      look: [0.0, 3.0, -85] },    // lift up & out toward bird's-eye
-  { t: 0.35, pos: [7, 6, -150],     look: [1.0, 3.5, -205] },   // through forest run 1
-  { t: 0.39, pos: [7, 6, -275],     look: [1.0, 3.5, -320] },   // forest run 1 → approach
-  { t: 0.40, pos: [4.6, 2.6, -337], look: [10.0, 2.2, -342] }, // Creative Origins (HOLD start)
-  { t: 0.52, pos: [4.6, 2.6, -338], look: [10.0, 2.2, -343] }, // Creative Origins (HOLD end)
-  { t: 0.56, pos: [0, 9, -372],     look: [-3.0, 3.0, -402] }, // rise over V
-  { t: 0.59, pos: [0, 16, -392],    look: [0.0, 3.0, -420] },  // bird's-eye over V junction
-  { t: 0.63, pos: [-5, 10, -440],   look: [-6.0, 3.0, -485] }, // bank left, descend into forest 2
-  { t: 0.68, pos: [-9, 6, -545],    look: [-5.0, 3.5, -600] }, // through forest run 2 (different trees)
-  { t: 0.72, pos: [-9, 6, -655],    look: [-5.0, 3.5, -705] }, // forest run 2 → approach
-  { t: 0.74, pos: [-7, 2.6, -715],  look: [-11.0, 2.0, -718] },// Unilever Station (HOLD start)
-  { t: 0.84, pos: [-7, 2.6, -716],  look: [-11.0, 2.0, -719] },// Unilever Station (HOLD end)
-  { t: 0.88, pos: [0, 16, -755],    look: [1.0, 3.0, -792] },  // rise, reveal Y junction
-  { t: 0.93, pos: [4, 4, -792],     look: [7.5, 3.0, -825] },  // toward the tree
-  { t: 1.00, pos: [4.6, 1.9, -800], look: [7.5, 4.0, -825] },  // beneath the tree (HOLD)
+  // ---- INTRO: platform → newspaper → read articles → board (train waits) ----
+  { t: 0.00, pos: [11.5, 3.0, -6],  look: [0.5, 2.0, -9] },   // T-view — standing square to the train
+  { t: 0.05, pos: [11.0, 2.1, 2.5], look: [7.0, 1.0, 3] },    // pan LEFT to the newspaper on the platform
+  { t: 0.10, pos: [9.1, 1.66, 4.4], look: [7.0, 1.05, 3] },   // focus settles as it lifts off
+  { t: 0.18, pos: [8.7, 1.6, 4.1],  look: [7.0, 1.1, 3] },    // it fills the frame → HTML article (HOLD start)
+  { t: 0.40, pos: [8.6, 1.6, 4.0],  look: [7.0, 1.1, 3] },    // articles read behind the overlay (HOLD end)
+  { t: 0.45, pos: [6.5, 2.3, 4.0],  look: [0.5, 1.8, -10] },  // overlay leaves → turn to the waiting train (board)
+  // ---- JOURNEY: train departs, forest → Creative → forest → Unilever → tree ----
+  { t: 0.48,  pos: [3, 6, -36],      look: [0.0, 3.0, -92] },  // board & lift toward bird's-eye (train departs)
+  { t: 0.51,  pos: [1, 4.0, -150],   look: [0.0, 3.0, -212] }, // descend into the corridor, follow the train
+  { t: 0.54,  pos: [0.5, 3.6, -275], look: [0.0, 3.2, -332] }, // thread the trees, train running ahead
+  { t: 0.548, pos: [4.6, 2.6, -337], look: [10.0, 2.2, -342] },// Creative Origins (HOLD start)
+  { t: 0.638, pos: [4.6, 2.6, -338], look: [10.0, 2.2, -343] },// Creative Origins (HOLD end)
+  { t: 0.668, pos: [2, 4.6, -388],   look: [0.5, 5.0, -470] }, // depart Creative — gentle lift, forward (smooth)
+  { t: 0.700, pos: [-1, 5.0, -462],  look: [3.0, 17, -610] },  // dolly down while turning UP toward the moon
+  { t: 0.730, pos: [-4, 4.3, -545],  look: [-1.0, 15, -690] }, // low through the forest, gazing at the moon
+  { t: 0.759, pos: [-5, 4.0, -600],  look: [-4.0, 13, -720] }, // (window-cam rides here, moon-gazing)
+  { t: 0.789, pos: [-5, 4.0, -660],  look: [-5.0, 4.0, -712] },// forest run 2 → ease toward the approach
+  { t: 0.804, pos: [-7, 2.6, -715],  look: [-11.0, 2.0, -718] },// Unilever Years (HOLD start)
+  { t: 0.880, pos: [-7, 2.6, -716],  look: [-11.0, 2.0, -719] },// Unilever Years (HOLD end)
+  { t: 0.910, pos: [0, 16, -755],    look: [1.0, 3.0, -792] }, // rise, reveal Y junction
+  { t: 0.947, pos: [4.6, 2.6, -805], look: [7.5, 6.0, -825] },// approach, tilting up to the tree
+  { t: 1.00,  pos: [5.4, 2.4, -812], look: [7.6, 8.5, -826] },// BENEATH the tree, gazing up (HOLD)
 ];
 
 // §5 — Beat labels for the on-screen readout (verification aid).
 export const BEATS = [
-  { t0: 0.00, t1: 0.05, label: 'Platform arrival',      hold: true  },
-  { t0: 0.05, t1: 0.12, label: 'Board the train',       hold: false },
-  { t0: 0.12, t1: 0.22, label: "Driver's compartment",  hold: true  },
-  { t0: 0.22, t1: 0.31, label: 'Gaining speed',         hold: false },
-  { t0: 0.31, t1: 0.40, label: 'Through the forest',    hold: false },
-  { t0: 0.40, t1: 0.52, label: 'Creative Origins',      hold: true  },
-  { t0: 0.52, t1: 0.59, label: 'Re-board & rise',       hold: false },
-  { t0: 0.59, t1: 0.63, label: 'V junction — bank left',hold: false },
-  { t0: 0.63, t1: 0.74, label: 'Deeper forest',         hold: false },
-  { t0: 0.74, t1: 0.84, label: 'Unilever Station',      hold: true  },
-  { t0: 0.84, t1: 0.88, label: 'Re-board & reveal Y',   hold: false },
-  { t0: 0.88, t1: 0.93, label: 'Toward the tree',       hold: false },
-  { t0: 0.93, t1: 1.01, label: 'Horizons Crossing',     hold: true  },
+  { t0: 0.00, t1: 0.05,  label: 'Platform arrival',     hold: true  },
+  { t0: 0.05, t1: 0.18,  label: 'A newspaper lifts',    hold: false },
+  { t0: 0.18, t1: 0.40,  label: 'Who is Poonno',        hold: true  },
+  { t0: 0.40, t1: 0.48,  label: 'Board the train',      hold: false },
+  { t0: 0.48, t1: 0.548, label: 'Through the forest',   hold: false },
+  { t0: 0.548, t1: 0.638,label: 'Creative Origins',     hold: true  },
+  { t0: 0.638, t1: 0.691,label: 'Re-board & rise',      hold: false },
+  { t0: 0.691, t1: 0.721,label: 'V junction',           hold: false },
+  { t0: 0.721, t1: 0.804,label: 'Deeper forest',        hold: false },
+  { t0: 0.804, t1: 0.880,label: 'Unilever Years',       hold: true  },
+  { t0: 0.880, t1: 0.947,label: 'Toward the tree',      hold: false },
+  { t0: 0.947, t1: 1.01, label: 'Horizons Crossing',    hold: true  },
 ];
 
 // §5.1 — the route the train physically travels (rear lead-in → stop behind the

@@ -1,0 +1,21 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch({ headless: true, args: ['--use-gl=angle','--use-angle=swiftshader','--ignore-gpu-blocklist'] });
+const p = await b.newPage({ viewport: { width: 800, height: 600 } });
+const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('console',m=>{ if(m.type()==='error') errs.push(m.text()); });
+await p.goto('http://localhost:8080/', { waitUntil: 'load' });
+await p.waitForTimeout(1000);
+await p.evaluate(() => { document.getElementById('enter-btn')?.click(); const l=document.getElementById('loader'); if(l) l.style.display='none'; });
+await p.evaluate(() => window.__poonno.snapTo(0.13));
+await p.waitForTimeout(4000);
+const r = await p.evaluate(() => {
+  const np = window.__poonno.newspaper;
+  if (!np) return { err: 'no newspaper obj' };
+  const h = np.hero;
+  const childCount = np.group.children.length;
+  if (!h) return { err: 'hero null', childCount };
+  const wp = new h.position.constructor(); h.getWorldPosition(wp);
+  return { childCount, heroVisible: h.visible, pos:[+h.position.x.toFixed(2),+h.position.y.toFixed(2),+h.position.z.toFixed(2)], scale:+h.scale.x.toFixed(2), meshes: (()=>{let n=0;h.traverse(o=>{if(o.isMesh)n++});return n;})() };
+});
+console.log(JSON.stringify(r));
+if(errs.length) console.log('ERR:', errs.slice(0,6).join(' | ')); else console.log('no errors');
+await b.close();

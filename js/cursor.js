@@ -11,6 +11,9 @@ export function initCursor() {
   const ring = document.getElementById('cursor');
   const dot = document.getElementById('cursor-dot');
   if (!ring || !dot) return;
+  // Custom cursor disabled — its glow/lag was problematic; use the native pointer.
+  ring.style.display = 'none'; dot.style.display = 'none';
+  return;
   if (matchMedia('(hover: none)').matches || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
   let mx = window.innerWidth / 2, my = window.innerHeight / 2, rx = mx, ry = my;

@@ -1,0 +1,11 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch({ headless: true, args: ['--use-gl=angle','--use-angle=swiftshader','--ignore-gpu-blocklist'] });
+const p = await b.newPage({ viewport: { width: 800, height: 600 } });
+await p.goto('http://localhost:8080/', { waitUntil: 'load' });
+await p.waitForTimeout(1000);
+await p.evaluate(() => { document.getElementById('enter-btn')?.click(); const l=document.getElementById('loader'); if(l) l.style.display='none'; });
+await p.evaluate(() => window.__poonno.snapTo(0.13));
+await p.waitForTimeout(4000);
+const r = await p.evaluate(() => { const c=window.__poonno.camera; const h=window.__poonno.newspaper.hero; const fwd=new c.position.constructor(0,0,-1).applyQuaternion(c.quaternion); const to=new c.position.constructor().subVectors(h.position,c.position); return { cam:[+c.position.x.toFixed(2),+c.position.y.toFixed(2),+c.position.z.toFixed(2)], hero:[+h.position.x.toFixed(2),+h.position.y.toFixed(2),+h.position.z.toFixed(2)], dist:+to.length().toFixed(2), dotFwd:+fwd.dot(to.clone().normalize()).toFixed(2) }; });
+console.log(JSON.stringify(r));
+await b.close();

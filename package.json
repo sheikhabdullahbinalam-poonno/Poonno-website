@@ -1,0 +1,30 @@
+{
+  "name": "poonno-website-2",
+  "version": "1.0.0",
+  "description": "An immersive, scroll-driven 3D storytelling website for **Sheikh Abdullah Bin Alam (\"Poonno\")** — athlete, creative director, and commercial leader. The visitor boards a night train and travels through a mystical forest, stopping at stations that reveal each side of Poonno's story, until two tracks converge toward an unwritten future.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sheikhabdullahbinalam-poonno/Poonno-website.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/sheikhabdullahbinalam-poonno/Poonno-website/issues"
+  },
+  "homepage": "https://github.com/sheikhabdullahbinalam-poonno/Poonno-website#readme",
+  "devDependencies": {
+    "@gltf-transform/core": "^4.4.0",
+    "@gltf-transform/extensions": "^4.4.0",
+    "@gltf-transform/functions": "^4.4.0",
+    "draco3dgltf": "^1.5.7",
+    "meshoptimizer": "^1.1.1",
+    "playwright": "^1.61.1",
+    "sharp": "^0.35.2"
+  }
+}

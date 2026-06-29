@@ -419,4 +419,46 @@ If a detail is ambiguous, prefer a detailed realistic interpretation and keep th
 
 ---
 
+## 15. BLENDER SCALE & DIMENSIONS (for the authored GLB)
+
+**Unit convention:** Blender → Scene Properties → Units = **Metric, Unit Scale 1.0, Length = Meters**. **1 Blender unit = 1 meter.** Model everything to the real-world sizes below so nothing clashes in scale. Sanity ruler: a **standing human eye is ~1.6 m** — every object should look right next to a 1.6 m figure. Apply transforms (Ctrl+A → All Transforms) before export. Export **GLB**, Draco on; the glTF exporter converts Blender's Z-up to glTF Y-up automatically.
+
+**Dimensions** (L = along the track · W = across · H = up; meters):
+
+| Object | L | W | H | Notes |
+|---|---|---|---|---|
+| Locomotive (engine) | 18 | 2.9 | 4.0 | wheels Ø ~1.0; cab at front |
+| Passenger carriage (each) | 21 | 2.9 | 4.0 | 0.5–1.0 m coupling gap between units |
+| Driver's cab interior (room) | 2.4 | 2.6 | 2.2 | the space the camera sits inside |
+| Track gauge (rail-to-rail) | — | 1.0 | — | metre gauge (Bangladesh); rail H 0.15 |
+| Sleeper | 0.25 | 1.8 | 0.15 | spaced ~0.6 m; ballast bed ~2.5 m wide |
+| Platform | (scene) | 5.0 | 0.4 | 0.4 m above rail; ≥ train length |
+| Canopy roof / posts | — | — | 3.8 | clearance ~3.5–4.0; posts ~0.2 sq |
+| Station nameplate | 2.6 | 0.1 | 0.6 | board on posts, top at ~2.8 m |
+| Kiosk / stall (tong dokan) | 2.0 | 1.5 | 2.6 | counter 0.9 H; signboard 1.7 W × 0.5 H |
+| **Regular conifer** | 3.5 | 3.5 | **10** | canopy Ø ~3.5; trunk Ø ~0.4 |
+| **Tall conifer (2×)** | 7 | 7 | **20** | exactly twice the regular — uniform ×2 |
+| **Finale "great" tree** | 14 | 14 | 16 | broadleaf, wide spreading; trunk Ø ~1.4 |
+| 3-tier shelf (cab) | 0.4 | 1.0 | 1.6 | depth 0.4 |
+| "Who is Poonno" poster | 0.05 | 0.7 | 1.0 | flat, slight curl |
+| Basketball | 0.24 | 0.24 | 0.24 | Ø 0.24 |
+| Trophy / medal | — | — | 0.4 / 0.08 | on the shelf tiers |
+| Jersey on hanger | 0.05 | 0.5 | 0.7 | number 27 |
+
+**Layout along the route** (matches §5 world coords; track runs along −Z, in meters):
+`Platform/start 0 → Creative Origins ≈ −190 → V-junction ≈ −210 → Unilever ≈ −300 → Y-junction ≈ −330 → Finale tree ≈ −372`.
+
+**Keeping aspect ratio when you resize (uniform scaling):**
+- Model at the base sizes above, then to change size **without distortion, scale uniformly**: select the object → press **`S`** → type the factor → **Enter** (e.g. `S 2` = double on all three axes at once). This preserves width:length:height.
+- **Do NOT** type a number into a single Dimension field (X, Y, or Z) in the N-panel — that scales one axis only and **breaks** the ratio (stretches the object).
+- **Tall trees:** duplicate a regular conifer and `S 2` (uniform) → 20 m, proportional trunk + canopy. For natural variety use `S 1.8`–`2.2`, never a single-axis stretch.
+- After any resize, **Apply Scale** (Object → Apply → Scale, or `Ctrl+A`) so the object exports with scale 1,1,1.
+- Keep the **N-panel "Dimensions"** readout open to confirm real meters as you work.
+
+**Naming for the handoff** (so Claude Code can wire the camera + interactions): name meshes/empties `TRAIN`, `LOCO`, `CARRIAGE_01…`, `TREE_FINALE`, `SHELF`, `POSTER_BIO`, `KIOSK_CREATIVE_01…05`, `KIOSK_UNILEVER_01…04`, and camera waypoints `CAM_00 … CAM_12` (+ optional `LOOK_00 …`) placed at the §5 beats.
+
+**What stays out of Blender:** fog, mist, fireflies, steam, bloom/grain/vignette, cursor magic, dynamic glows, the HDRI environment for reflections, the scroll camera motion, and all UI — Claude Code adds these in Three.js on top of your GLB. Bake static dusk **shadows + AO into textures** in Blender; let Three.js handle dynamic/atmospheric light.
+
+---
+
 *Travel light. Let the train do the talking.*

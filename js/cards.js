@@ -50,8 +50,8 @@ function onKey(e) {
 
 // Called each frame from main: show the right station's carousel during its hold.
 export function updateCards(t) {
-  const s = (t >= 0.40 && t <= 0.52) ? 'creative'
-    : (t >= 0.74 && t <= 0.84) ? 'unilever' : null;
+  const s = (t >= 0.548 && t <= 0.638) ? 'creative'
+    : (t >= 0.804 && t <= 0.880) ? 'unilever' : null;
   if (s !== station) setStation(s);
 }
 

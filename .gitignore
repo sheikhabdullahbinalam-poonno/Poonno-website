@@ -27,3 +27,12 @@ server.py
 
 # stray off-spec scaffold (not used — the vanilla build lives at the root)
 poonno-site/
+
+# Raw (unoptimized) source models — huge (>100MB), GitHub-rejected. The site
+# loads the optimized copies in assets/models/opt/ instead (those ARE committed).
+assets/models/*.glb
+
+# Local agent / tooling caches (not part of the website)
+.agents/
+.claude/
+.extract-design-system/

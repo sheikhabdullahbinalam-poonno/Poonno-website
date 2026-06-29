@@ -1,0 +1,11 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch({ headless: true, args: ['--use-gl=angle','--use-angle=swiftshader','--ignore-gpu-blocklist'] });
+const p = await b.newPage({ viewport: { width: 400, height: 300 } });
+await p.goto('http://localhost:8080/', { waitUntil: 'load' });
+await p.waitForTimeout(900);
+await p.evaluate(() => { document.getElementById('enter-btn')?.click(); const l=document.getElementById('loader'); if(l) l.style.display='none'; });
+await p.evaluate(() => window.__poonno.snapTo(0.0));
+await p.waitForTimeout(3500);
+const r = await p.evaluate(() => { const h=window.__poonno.newspaper.hero; h.updateMatrixWorld(true); let mn=[1e9,1e9,1e9],mx=[-1e9,-1e9,-1e9]; h.traverse(o=>{ if(!o.isMesh)return; const g=o.geometry; if(!g.boundingBox)g.computeBoundingBox(); const bb=g.boundingBox,e=o.matrixWorld.elements; for(const X of[bb.min.x,bb.max.x])for(const Y of[bb.min.y,bb.max.y])for(const Z of[bb.min.z,bb.max.z]){const wx=e[0]*X+e[4]*Y+e[8]*Z+e[12],wy=e[1]*X+e[5]*Y+e[9]*Z+e[13],wz=e[2]*X+e[6]*Y+e[10]*Z+e[14];mn=[Math.min(mn[0],wx),Math.min(mn[1],wy),Math.min(mn[2],wz)];mx=[Math.max(mx[0],wx),Math.max(mx[1],wy),Math.max(mx[2],wz)];} }); return {min:mn.map(n=>+n.toFixed(2)),max:mx.map(n=>+n.toFixed(2)),size:mx.map((v,i)=>+(v-mn[i]).toFixed(2))}; });
+console.log('world bbox', JSON.stringify(r));
+await b.close();

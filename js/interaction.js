@@ -12,7 +12,8 @@ export function initInteraction({ camera, cab, openModal, isModalOpen, getT }) {
   const ptr = new THREE.Vector2();
   let hovered = null;
 
-  const inCab = () => { const t = getT(); return t >= 0.10 && t <= 0.30; };
+  // Cab intro retired in favour of the newspaper fly-in — interactives disabled.
+  const inCab = () => false;
 
   function pick(cx, cy) {
     ptr.x = (cx / window.innerWidth) * 2 - 1;
@@ -75,6 +76,7 @@ export function initInteraction({ camera, cab, openModal, isModalOpen, getT }) {
 
   return {
     update() {
+      if (!hint) return;   // cab intro retired — its hint/tip DOM was removed
       const isIn = inCab();
       if (isIn && !hintShown) {
         hintShown = true;

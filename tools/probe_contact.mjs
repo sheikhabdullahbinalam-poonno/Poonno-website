@@ -1,0 +1,11 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch({ headless: true, args: ['--use-gl=angle','--use-angle=swiftshader','--ignore-gpu-blocklist'] });
+const p = await b.newPage({ viewport: { width: 1280, height: 720 } });
+await p.goto('http://localhost:8080/', { waitUntil: 'load' });
+await p.waitForTimeout(900);
+await p.evaluate(() => { document.getElementById('enter-btn')?.click(); const l=document.getElementById('loader'); if(l) l.style.display='none'; });
+await p.evaluate(() => window.__poonno.snapTo(1.0));
+await p.waitForTimeout(3000);
+const r = await p.evaluate(() => { const c=document.getElementById('contact'); const cs=getComputedStyle(c); const h=c.querySelector('.contact-head'); return { display:cs.display, opacity:cs.opacity, hasShow:c.classList.contains('show'), headText:h&&h.textContent, headColor:h&&getComputedStyle(h).color }; });
+console.log(JSON.stringify(r));
+await b.close();

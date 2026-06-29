@@ -14,9 +14,15 @@
 
 import * as THREE from 'three';
 import { PALETTE, TRAIN_PATH } from './config.js';
+import { preloadModels, getModel, normalize } from './models.js';
+import { weatheredMetal } from './materials.js';
 
-const CAR_SPACING = 16; // world units between car centres along the rail
 const BODY_Y = 1.9;     // body-centre height above the rail
+// Real car lengths (world units, after TRAIN_SCALE) so cars couple nose-to-tail
+// instead of sitting on a fixed centre-to-centre interval (the engine is short).
+const ENGINE_LEN = 8.9;
+const CARRIAGE_LEN = 15.0;
+const COUPLE = 1.0;     // coupling gap between adjacent car ends
 
 export class Train {
   constructor(scene) {
@@ -24,7 +30,6 @@ export class Train {
       TRAIN_PATH.map(p => new THREE.Vector3(...p)), false, 'catmullrom', 0.5
     );
     this.total = this.curve.getLength();
-    this.gapU = CAR_SPACING / this.total;
 
     this.uWait = this._findU(0, -10);
     this.uCreative = this._findU(0, -340);
@@ -39,6 +44,16 @@ export class Train {
     this.cars.push(makeCarriage());
     this.cars.forEach(c => this.group.add(c));
     scene.add(this.group);
+
+    // Distance (as a fraction of the curve) of each car CENTRE behind the lead
+    // point u, so adjacent cars couple with a fixed COUPLE gap between their ends.
+    const lengths = [ENGINE_LEN, CARRIAGE_LEN, CARRIAGE_LEN, CARRIAGE_LEN];
+    this.offsetsU = [0];
+    let acc = 0;
+    for (let i = 1; i < lengths.length; i++) {
+      acc += lengths[i - 1] / 2 + COUPLE + lengths[i] / 2;
+      this.offsetsU.push(acc / this.total);
+    }
 
     this._p = new THREE.Vector3();
     this._t = new THREE.Vector3();
@@ -60,12 +75,12 @@ export class Train {
 
   progressForT(t) {
     const W = this.uWait, C = this.uCreative, U = this.uUnilever, T = this.uTree;
-    if (t < 0.22) return W;
-    if (t < 0.40) return lerp(W, C, ease((t - 0.22) / 0.18));
-    if (t < 0.52) return C;
-    if (t < 0.74) return lerp(C, U, ease((t - 0.52) / 0.22));
-    if (t < 0.84) return U;
-    return lerp(U, T, ease((t - 0.84) / 0.16));
+    if (t < 0.48) return W;                                       // waits through reading + boarding
+    if (t < 0.548) return lerp(W, C, ease((t - 0.48) / 0.068));   // departs → Creative
+    if (t < 0.638) return C;
+    if (t < 0.804) return lerp(C, U, ease((t - 0.638) / 0.166));  // → Unilever
+    if (t < 0.880) return U;
+    return lerp(U, T, ease((t - 0.880) / 0.120));                 // → the tree
   }
 
   update(t, dt) {
@@ -78,7 +93,7 @@ export class Train {
 
   _place(u) {
     for (let i = 0; i < this.cars.length; i++) {
-      const cu = clamp(u - i * this.gapU, 0.0002, 0.9998);
+      const cu = clamp(u - this.offsetsU[i], 0.0002, 0.9998);
       this.curve.getPointAt(cu, this._p);
       this.curve.getTangentAt(cu, this._t);
       const car = this.cars[i];
@@ -116,8 +131,84 @@ function mats() {
   return M;
 }
 
-// ---- LOCOMOTIVE -------------------------------------------------------------
+// ---- TRAIN — real GLBs (engine.glb + carriage.glb) --------------------------
+// The car group's origin sits at rail.y + BODY_Y; we ground each model then drop
+// it by BODY_Y so the wheels meet the rail. A single TRAIN_SCALE keeps the engine
+// (~12.4u native) and carriage (~20.8u native) proportional to each other.
+const TRAIN_SCALE = 0.72;
 function makeLoco() {
+  const g = new THREE.Group();
+  preloadModels().then(() => {
+    const loco = getModel('engine');
+    if (!loco) return;
+    normalize(loco, { scale: TRAIN_SCALE, ground: true, align: 'z' });
+    loco.position.y -= BODY_Y;
+    applyTrainMaterials(loco);
+    g.add(loco);
+  }).catch((e) => console.warn('[train] engine load failed:', e.message));
+  return g;
+}
+
+function makeCarriage() {
+  const g = new THREE.Group();
+  preloadModels().then(() => {
+    const car = getModel('carriage');
+    if (!car) return;
+    normalize(car, { scale: TRAIN_SCALE, ground: true, align: 'z' });
+    car.position.y -= BODY_Y;
+    applyCarriageMaterials(car);
+    g.add(car);
+  }).catch((e) => console.warn('[train] carriage load failed:', e.message));
+  return g;
+}
+
+// The heritage coach is untextured (white). Give it the engine's weathered,
+// rusty painted-metal feel via the procedural shader, keyed to the car's own
+// height range so grime gathers low on the body.
+function applyCarriageMaterials(root) {
+  root.traverse((o) => {
+    if (!o.isMesh) return;
+    o.castShadow = false; o.receiveShadow = false;
+    const g = o.geometry;
+    if (!g.boundingBox) g.computeBoundingBox();
+    const bb = g.boundingBox;
+    o.material = weatheredMetal({
+      base: new THREE.Color(0x2b4a4a),     // engine-like dark teal paint
+      rust: new THREE.Color(0x5e3018),
+      yLow: bb.min.y, yHigh: bb.max.y,
+      paintRough: 0.5, rustRough: 0.95, metalBase: 0.55,
+      scale: 0.6, panel: 0.55, envMapIntensity: 1.1,
+    });
+  });
+}
+
+// Dark-glass / moonlit material treatment for the real train: warm-lit cab glass,
+// boosted environment reflections, no pure-black shadows.
+function applyTrainMaterials(root) {
+  root.traverse((o) => {
+    if (!o.isMesh || !o.material) return;
+    o.castShadow = false; o.receiveShadow = false;
+    const mats = Array.isArray(o.material) ? o.material : [o.material];
+    const name = (o.name || '').toLowerCase();
+    mats.forEach((mat, i) => {
+      if (name.includes('glass')) {
+        mats[i] = new THREE.MeshPhysicalMaterial({
+          color: 0x8FB6CC, roughness: 0.15, metalness: 0,
+          transmission: 0.9, thickness: 0.6, ior: 1.3,
+          emissive: new THREE.Color(PALETTE.firefly), emissiveIntensity: 0.25,
+          envMapIntensity: 1.4,
+        });
+      } else if (mat.isMeshStandardMaterial || mat.isMeshPhysicalMaterial) {
+        mat.envMapIntensity = 1.15;
+        mat.needsUpdate = true;
+      }
+    });
+    o.material = Array.isArray(o.material) ? mats : mats[0];
+  });
+}
+
+// ---- (legacy procedural loco — kept for reference / fallback) ---------------
+function makeLocoProcedural() {
   const m = mats();
   const g = new THREE.Group();
   const W = 2.9;
@@ -182,8 +273,8 @@ function makeLoco() {
   return g;
 }
 
-// ---- CARRIAGE ---------------------------------------------------------------
-function makeCarriage() {
+// ---- (legacy procedural carriage — kept for reference / fallback) -----------
+function makeCarriageProcedural() {
   const m = mats();
   const g = new THREE.Group();
   const W = 3.0, H = 2.7, L = 14;
