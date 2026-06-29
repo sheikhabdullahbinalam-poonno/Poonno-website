@@ -78,3 +78,91 @@ export function weatheredMetal(opts = {}) {
   mat.customProgramCacheKey = () => 'weatheredMetal_v1';
   return mat;
 }
+
+// ---------------------------------------------------------------------------
+//  woodMaterial(): object-space wood grain (rings + fine streaks + dark grain
+//  lines) so planks read as real timber, not a flat colour. Grain runs along
+//  local +Z (the plank length). Diffuse mixes two tones; roughness mottles.
+// ---------------------------------------------------------------------------
+export function woodMaterial(opts = {}) {
+  const {
+    light = new THREE.Color(0x6e4d2c), dark = new THREE.Color(0x33220f),
+    rough = 0.9, scale = 1.0,
+  } = opts;
+  const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: rough, metalness: 0 });
+  mat.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, { uLight: { value: light }, uDark: { value: dark }, uScale: { value: scale } });
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vWLP;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvWLP = position;');
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>',
+        '#include <common>\n' + NOISE_GLSL +
+        'varying vec3 vWLP;\nuniform vec3 uLight,uDark;\nuniform float uScale;\nfloat gWoodR;')
+      .replace('#include <color_fragment>', `#include <color_fragment>
+        vec3 wlp = vWLP * uScale;
+        float rings = fbm3(vec3(wlp.x*7.0, wlp.y*2.0, wlp.z*0.6));      // long grain along Z
+        float fine  = fbm3(vec3(wlp.x*34.0, wlp.y*5.0, wlp.z*3.0));     // fine fibre
+        float g = clamp(rings*0.7 + fine*0.4, 0.0, 1.0);
+        vec3 col = mix(uDark, uLight, g);
+        col *= 0.8 + 0.34*fine;                                        // streaky tone
+        float line = smoothstep(0.46, 0.5, abs(fract(wlp.x*7.0 + rings*1.3) - 0.5));
+        col *= 1.0 - 0.28*line;                                        // dark grain lines
+        gWoodR = fine;
+        diffuseColor.rgb *= col;`)
+      .replace('#include <roughnessmap_fragment>',
+        '#include <roughnessmap_fragment>\n        roughnessFactor *= 0.82 + 0.26*gWoodR;');
+  };
+  mat.customProgramCacheKey = () => 'wood_v1';
+  return mat;
+}
+
+// ---------------------------------------------------------------------------
+//  stoneMaterial(): triplanar brick/stone masonry in object space — staggered
+//  courses with recessed mortar, per-brick tone variation and weathering. Reads
+//  correctly on every face of a box (blended by the object normal).
+// ---------------------------------------------------------------------------
+export function stoneMaterial(opts = {}) {
+  const {
+    stone = new THREE.Color(0x6f6453), mortar = new THREE.Color(0x29251c),
+    rough = 0.96, scale = 1.5,
+  } = opts;
+  const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: rough, metalness: 0 });
+  mat.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, { uStone: { value: stone }, uMortar: { value: mortar }, uScale: { value: scale } });
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vSLP;\nvarying vec3 vSLN;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvSLP = position;')
+      .replace('#include <beginnormal_vertex>', '#include <beginnormal_vertex>\nvSLN = objectNormal;');
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>',
+        '#include <common>\n' + NOISE_GLSL +
+        `varying vec3 vSLP;\nvarying vec3 vSLN;\nuniform vec3 uStone,uMortar;\nuniform float uScale;
+        float brickMask(vec2 uv){
+          float row = floor(uv.y);
+          uv.x += 0.5*mod(row, 2.0);                 // stagger alternate courses
+          vec2 f = fract(uv);
+          vec2 d = min(f, 1.0 - f);
+          return smoothstep(0.0, 0.05, min(d.x, d.y*2.0));   // 0 in mortar, 1 on brick
+        }
+        float brickTone(vec2 uv){
+          float row = floor(uv.y); uv.x += 0.5*mod(row, 2.0);
+          return h31(vec3(floor(uv.x), row, 3.0));
+        }
+        float gStoneG;`)
+      .replace('#include <color_fragment>', `#include <color_fragment>
+        vec3 slp = vSLP * uScale;
+        vec3 an = abs(normalize(vSLN)); an /= (an.x + an.y + an.z + 1e-4);
+        vec2 ux = vec2(slp.z, slp.y*2.6), uy = vec2(slp.x, slp.z), uz = vec2(slp.x, slp.y*2.6);
+        float m  = brickMask(ux)*an.x + brickMask(uy)*an.y + brickMask(uz)*an.z;
+        float tn = brickTone(ux)*an.x + brickTone(uy)*an.y + brickTone(uz)*an.z;
+        vec3 col = mix(uMortar, uStone*(0.66 + 0.5*tn), m);
+        col *= 0.84 + 0.3*fbm3(slp*2.6);                       // weathering mottle
+        gStoneG = m;
+        diffuseColor.rgb *= col;`)
+      .replace('#include <roughnessmap_fragment>',
+        '#include <roughnessmap_fragment>\n        roughnessFactor = mix(1.0, roughnessFactor, gStoneG);'); // mortar rougher
+  };
+  mat.customProgramCacheKey = () => 'stone_v1';
+  return mat;
+}

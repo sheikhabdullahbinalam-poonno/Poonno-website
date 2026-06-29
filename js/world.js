@@ -11,6 +11,7 @@ import * as THREE from 'three';
 import { PALETTE, FOG, SKY } from './config.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { preloadModels, getModel, normalize } from './models.js';
+import { weatheredMetal, woodMaterial, stoneMaterial } from './materials.js';
 
 const RAIL_MATERIAL = new THREE.MeshStandardMaterial({ color: 0x8A929A, metalness: 0.85, roughness: 0.38, envMapIntensity: 1.0 });
 const SLEEPER_MATERIAL = new THREE.MeshStandardMaterial({ color: 0x3A2A1E, roughness: 0.95, metalness: 0.05 });
@@ -307,13 +308,19 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
   const X = (d) => trackX + side * d;                 // d = distance out from the track
   const faceTrack = side > 0 ? -Math.PI / 2 : Math.PI / 2;  // a +X face turns toward the track
 
-  // --- materials (weathered, moonlit) ---
-  const plaster = new THREE.MeshStandardMaterial({ map: plasterTex(), roughness: 0.97, metalness: 0 });
-  const slate   = new THREE.MeshStandardMaterial({ map: slateTex(), color: 0xc4ccd6, roughness: 0.62, metalness: 0.18 });
-  const timber  = new THREE.MeshStandardMaterial({ color: 0x241910, roughness: 0.92, metalness: 0.02 });
-  const iron    = new THREE.MeshStandardMaterial({ color: 0x14130f, roughness: 0.5, metalness: 0.6 });
-  const stone   = new THREE.MeshStandardMaterial({ color: 0x5b5346, roughness: 0.95, metalness: 0 });
-  const winGlow = new THREE.MeshStandardMaterial({ color: 0x160e04, emissive: 0xffb255, emissiveIntensity: 1.3, roughness: 0.6 });
+  // --- materials (procedural PBR, weathered & moonlit) ---
+  // Walls/quoins: real triplanar masonry. Deck/timber: object-space wood grain.
+  // Iron: the train's rusty weatheredMetal so the station shares its patina.
+  const stone   = stoneMaterial({ stone: new THREE.Color(0x6a6051), mortar: new THREE.Color(0x241f17), scale: 1.5 });
+  const brickQ  = stoneMaterial({ stone: new THREE.Color(0x7a4e38), mortar: new THREE.Color(0x241812), scale: 2.6 }); // quoins/chimney brick
+  const slate   = new THREE.MeshStandardMaterial({ map: slateTex(), color: 0x9aa3ad, roughness: 0.7, metalness: 0.12 });
+  const timber  = woodMaterial({ light: new THREE.Color(0x4a3420), dark: new THREE.Color(0x201408), scale: 1.4 });
+  const deckWood = woodMaterial({ light: new THREE.Color(0x5e442a), dark: new THREE.Color(0x2a1c0e), scale: 0.7 });
+  const iron    = weatheredMetal({
+    base: new THREE.Color(0x20211f), rust: new THREE.Color(0x5a3320),
+    yLow: 0.0, yHigh: 4.0, paintRough: 0.55, rustRough: 0.95, metalBase: 0.7, scale: 1.6, panel: 0.0, rustAmt: 0.25,
+  });
+  const winGlow = new THREE.MeshStandardMaterial({ color: 0x180f05, emissive: 0xffae50, emissiveIntensity: 0.45, roughness: 0.7 });
 
   const box = (w, h, dp, mat, d, y, dz, ry = 0) => {
     const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, dp), mat);
@@ -323,58 +330,62 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
   // ---- raised plank platform (base slab + individual boards with grain gaps) ----
   const PLEN = 42, deckTop = 0.92, nearD = 2.6, farD = 10.6, midD = (nearD + farD) / 2, pW = farD - nearD;
   box(pW, deckTop, PLEN, stone, midD, deckTop / 2, 0);                 // stone substructure
-  for (let d = nearD + 0.25; d < farD; d += 0.5) {                    // deck boards, running along z
-    const tone = 0x5a4530 + Math.floor(Math.random() * 0x18) * 0x100;
-    const m = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.1, PLEN),
-      new THREE.MeshStandardMaterial({ color: tone, roughness: 0.95, metalness: 0 }));
+  for (let d = nearD + 0.25; d < farD; d += 0.5) {                    // deck boards (grain runs along z), gaps show the dark base
+    const m = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.1, PLEN), deckWood);
     m.position.set(X(d), deckTop + 0.05, z); add(m);
   }
   box(0.18, 0.5, PLEN, timber, nearD - 0.02, deckTop - 0.1, 0);        // timber edge fascia (track side)
   for (let dz = -PLEN / 2 + 2; dz <= PLEN / 2 - 2; dz += 5)            // trestle supports under the edge
     box(0.3, deckTop, 0.3, timber, nearD + 0.2, deckTop / 2, dz);
 
-  // ---- station building: plaster walls, timber framing, slate gable, chimney ----
+  // ---- station building: stone walls, timber framing, slate gable, brick chimney
   const bD = 13.5, bFront = 10.2, bW = 8.5, bH = 5.0;                  // body
-  box(7, bH, bW, plaster, bD, bH / 2, 0);
-  // exposed corner stonework (quoins) at the track-facing front
-  box(0.5, bH, 0.5, stone, bFront, bH / 2, -bW / 2 + 0.25);
-  box(0.5, bH, 0.5, stone, bFront, bH / 2, bW / 2 - 0.25);
-  // timber framing on the front wall (Tudor beams)
-  const beam = (w, h, d, y, dz, ry = 0) => box(w, h, d, timber, bFront - 0.02, y, dz, ry);
+  box(7, bH, bW, stone, bD, bH / 2, 0);
+  // brick corner quoins at the track-facing front
+  box(0.6, bH, 0.6, brickQ, bFront, bH / 2, -bW / 2 + 0.3);
+  box(0.6, bH, 0.6, brickQ, bFront, bH / 2, bW / 2 - 0.3);
+  // half-timbered framing on the front wall
+  const beam = (w, h, d, y, dz, ry = 0) => box(w, h, d, timber, bFront - 0.03, y, dz, ry);
   beam(0.22, bH, 0.22, bH / 2, -2.6); beam(0.22, bH, 0.22, bH / 2, 0); beam(0.22, bH, 0.22, bH / 2, 2.6); // verticals
-  beam(0.22, 0.22, bW, bH - 0.3, 0); beam(0.22, 0.22, bW, 2.4, 0);     // horizontals (across z → along wall)
-  // gable roof (two slate slopes)
+  beam(0.22, 0.22, bW, bH - 0.3, 0); beam(0.22, 0.22, bW, 2.4, 0);     // horizontals
+  // gable roof (two slate slopes) + gable-end fill
   for (const s of [-1, 1]) {
-    const slope = box(7.6, 0.22, 5.6, slate, bD, bH + 1.3, 0, 0);
-    slope.rotation.z = s * 0.62; slope.position.set(X(bD) + side * s * 1.55, bH + 1.35, z);
-    slope.scale.z = bW / 5.6;
+    const slope = new THREE.Mesh(new THREE.BoxGeometry(7.7, 0.24, bW + 0.7), slate);
+    slope.position.set(X(bD) + side * s * 1.55, bH + 1.35, z); slope.rotation.z = s * 0.62; add(slope);
   }
-  box(7.0, 1.6, 0.3, plaster, bD, bH + 0.8, -bW / 2 + 0.15);           // gable end fill (front)
-  box(7.0, 1.6, 0.3, plaster, bD, bH + 0.8, bW / 2 - 0.15);
-  // chimney + cap
-  box(0.9, 2.2, 0.9, stone, bD + 1.6, bH + 1.6, -2.2);
-  box(1.2, 0.3, 1.2, slate, bD + 1.6, bH + 2.8, -2.2);
+  box(7.0, 1.7, 0.3, stone, bD, bH + 0.85, -bW / 2 + 0.16);
+  box(7.0, 1.7, 0.3, stone, bD, bH + 0.85, bW / 2 - 0.16);
+  // brick chimney + slate cap
+  box(1.0, 2.4, 1.0, brickQ, bD + 1.6, bH + 1.7, -2.2);
+  box(1.3, 0.3, 1.3, slate, bD + 1.6, bH + 3.0, -2.2);
 
-  // door (recessed, with a warm glow within) + two lit windows on the front
-  box(1.5, 3.0, 0.2, timber, bFront - 0.05, 1.5, 0);
-  box(1.1, 2.5, 0.1, winGlow, bFront - 0.12, 1.45, 0);
-  for (const dz of [-2.8, 2.8]) {
-    box(1.3, 1.5, 0.18, timber, bFront - 0.04, 2.7, dz);               // window frame
-    box(1.0, 1.2, 0.1, winGlow, bFront - 0.12, 2.7, dz);              // warm pane
+  // ---- recessed door: brick surround + panelled timber door + faint warm leak ----
+  const doorW = 1.6, doorH = 3.0;
+  box(doorW + 0.6, doorH + 0.4, 0.32, brickQ, bFront + 0.06, doorH / 2 + 0.05, 0); // surround
+  box(doorW + 0.5, doorH + 0.3, 0.1, winGlow, bFront - 0.16, doorH / 2 + 0.05, 0); // glow leak behind
+  box(doorW, doorH, 0.28, timber, bFront - 0.1, doorH / 2, 0);                     // door slab
+  for (const py of [doorH * 0.72, doorH * 0.38])                                   // raised panels
+    box(doorW * 0.6, doorH * 0.24, 0.06, timber, bFront - 0.26, py, 0);
+  // ---- two windows: brick surround + dim warm pane + timber mullion cross ----
+  for (const dz of [-2.95, 2.95]) {
+    box(1.6, 1.9, 0.32, brickQ, bFront + 0.05, 2.75, dz);            // surround
+    box(1.2, 1.5, 0.1, winGlow, bFront - 0.12, 2.75, dz);           // dim warm pane
+    box(0.1, 1.5, 0.16, timber, bFront - 0.16, 2.75, dz);          // mullion (vertical)
+    box(1.2, 0.1, 0.16, timber, bFront - 0.16, 2.75, dz);          // mullion (horizontal)
   }
 
-  // ---- clock tower at the front corner: tall shaft + pyramid slate roof + clock ----
+  // ---- clock tower at the front corner: stone shaft + pyramid slate roof + clock
   const tD = bFront + 0.4, tDZ = -bW / 2 - 0.6, tH = 8.2, tW = 2.6;
-  box(tW, tH, tW, plaster, tD, tH / 2, tDZ);
+  box(tW, tH, tW, stone, tD, tH / 2, tDZ);
   box(0.26, tH, 0.26, timber, tD - tW / 2 + 0.1, tH / 2, tDZ - tW / 2 + 0.1); // corner beams
   box(0.26, tH, 0.26, timber, tD - tW / 2 + 0.1, tH / 2, tDZ + tW / 2 - 0.1);
   const spire = new THREE.Mesh(new THREE.ConeGeometry(2.05, 2.4, 4), slate);  // pyramidal slate cap
   spire.position.set(X(tD), tH + 1.2, z + tDZ); spire.rotation.y = Math.PI / 4; add(spire);
   const finial = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.7, 6), iron);
   finial.position.set(X(tD), tH + 2.6, z + tDZ); add(finial);
-  // clock face on the track-facing side, faintly self-lit
-  const clock = new THREE.Mesh(new THREE.CircleGeometry(0.95, 32),
-    new THREE.MeshStandardMaterial({ map: clockTex(), emissive: 0xffffff, emissiveMap: clockTex(), emissiveIntensity: 0.35, roughness: 0.6, side: THREE.DoubleSide }));
+  // clock face on the track-facing side, only FAINTLY self-lit (was too bright)
+  const clock = new THREE.Mesh(new THREE.CircleGeometry(0.9, 32),
+    new THREE.MeshStandardMaterial({ map: clockTex(), emissive: 0xffffff, emissiveMap: clockTex(), emissiveIntensity: 0.14, roughness: 0.7, side: THREE.DoubleSide }));
   clock.position.set(X(tD - tW / 2 - 0.02), 6.2, z + tDZ); clock.rotation.y = faceTrack; add(clock);
 
   // ---- open platform shelter (posts + pitched slate roof) further along ----
@@ -392,27 +403,30 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
   box(1.8, 0.12, 0.5, timber, bFront - 1.0, deckTop + 0.55, 4.5);
   box(1.8, 0.5, 0.1, timber, bFront - 0.78, deckTop + 0.8, 4.7);
 
-  // ---- wrought-iron lamp posts with warm lanterns + light pools ----
+  // ---- rusted-iron lamp posts with DIM warm lanterns (kept low so the geometry
+  // stays in moody shadow rather than blown out) ----
   for (const dz of [-12, 0, 12]) {
     const lx = X(nearD + 0.5), ly0 = deckTop;
     const post = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.1, 3.4, 10), iron);
     post.position.set(lx, ly0 + 1.7, z + dz); add(post);
     const arm = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.5), iron);
     arm.position.set(lx, ly0 + 3.3, z + dz); add(arm);
-    const lantern = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.5, 0.34),
-      new THREE.MeshStandardMaterial({ color: 0x3a2a12, emissive: 0xffb45a, emissiveIntensity: 0.7, roughness: 0.5 }));
+    const lantern = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.46, 0.3),
+      new THREE.MeshStandardMaterial({ color: 0x2a1d0c, emissive: 0xffb05a, emissiveIntensity: 0.35, roughness: 0.6 }));
     lantern.position.set(lx, ly0 + 3.25, z + dz); add(lantern);
-    const cap = new THREE.Mesh(new THREE.ConeGeometry(0.26, 0.24, 4), iron);
-    cap.position.set(lx, ly0 + 3.6, z + dz); cap.rotation.y = Math.PI / 4; add(cap);
-    const L = new THREE.PointLight(0xffb45a, 4.5, 17, 2);   // warm pool, tight falloff (no façade flood)
-    L.position.set(lx, ly0 + 3.2, z + dz); add(L);
+    const cap = new THREE.Mesh(new THREE.ConeGeometry(0.24, 0.22, 4), iron);
+    cap.position.set(lx, ly0 + 3.58, z + dz); cap.rotation.y = Math.PI / 4; add(cap);
+    const L = new THREE.PointLight(0xffaa55, 2.0, 12, 2);    // small, dim warm pool
+    L.position.set(lx, ly0 + 3.15, z + dz); add(L);
   }
-  // soft warm fill from the building windows so the façade reads at night
-  const fill = new THREE.PointLight(0xffc070, 3.2, 22, 2);
+  // a single very soft fill so the façade is barely readable (low — keeps mystery)
+  const fill = new THREE.PointLight(0xffc070, 1.4, 18, 2);
   fill.position.set(X(bFront - 1), 2.6, z); add(fill);
 
-  // nameplate hung at the platform edge, facing the track
-  G.add(makeNameplate(name, X(nearD + 0.1), 3.0, z - 1, trackX, z - 1, 5.4));
+  // ---- station name board at the START of the platform, squared to the tracks
+  // (ref: Name plate.webp — yellow board, dark text, on twin posts) ----
+  const signZ = z + PLEN / 2 - 3;
+  G.add(makeNameplate(name, X(nearD + 0.3), 2.6, signZ, trackX, signZ, 6.0));
   return G;
 }
 
