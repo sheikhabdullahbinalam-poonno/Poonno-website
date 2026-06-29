@@ -58,10 +58,16 @@ function addLights(scene) {
   moon.position.set(-150, 420, -250); // soft moonlight from above-front-left
   scene.add(moon);
   scene.add(new THREE.AmbientLight(0x1C2A38, 0.5));
-  // gentle, undetectable fill over the darker far stretch (Unilever → finale)
-  const fill = new THREE.PointLight(0x9DB6D6, 0.5, 360, 2);
-  fill.position.set(-4, 30, -770);
+  // soft moonlit fill over the darker far stretch (Unilever → Y-junction → finale).
+  // decay 1 (linear) so it actually spreads across the stretch rather than dying
+  // as 1/d² at ground level — the junction approach was reading near-black.
+  const fill = new THREE.PointLight(0x9DB6D6, 16, 320, 1);
+  fill.position.set(1.5, 22, -775);
   scene.add(fill);
+  // a second, lower touch lifts the immediate foreground ground + rails there.
+  const fill2 = new THREE.PointLight(0xA7BEDC, 9, 180, 1);
+  fill2.position.set(0, 12, -745);
+  scene.add(fill2);
 }
 
 // ---- ground -----------------------------------------------------------------
