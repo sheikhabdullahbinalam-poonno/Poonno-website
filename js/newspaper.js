@@ -99,7 +99,7 @@ export class Newspaper {
 
     if (t <= NEWS.fly0) {
       this.flyAmt = 0;
-      if (this.heroMat) this.heroMat.emissiveIntensity = 0;       // unlit at rest (#1)
+      if (this.heroMat) this.heroMat.emissiveIntensity = 0.2;     // soft self-glow at rest — reads as a luminous object to interact with
       const fl = Math.sin(performance.now() * 0.0022) * 0.025;   // resting flutter
       this.hero.position.copy(this.restPos); this.hero.position.y += fl;
       this.hero.quaternion.copy(this.restQuat);
@@ -154,7 +154,7 @@ export class Newspaper {
     // --- scale: small aloft, grows to fill by the time it faces the viewer ---
     this.hero.scale.setScalar(lerp(0.9, 3.3, ease(Math.min(1, Math.max(0, (k - 0.2) / 0.6)))));
     // catch the light as it turns to face you (keeps the fill readable, not black)
-    if (this.heroMat) this.heroMat.emissiveIntensity = Math.max(0, (k - 0.5) / 0.5) * 0.7;
+    if (this.heroMat) this.heroMat.emissiveIntensity = 0.2 + Math.max(0, (k - 0.25) / 0.75) * 0.5;
   }
 }
 
@@ -201,6 +201,11 @@ function newsprintTex() {
   g.strokeStyle = ink; g.lineWidth = 1.5; g.strokeRect(px, py, pw, ph);
   g.fillStyle = ink; g.font = '600 14px Georgia, serif'; g.fillText('THE MAN BEHIND THE JOURNEY', px, py + ph + 22);
 
+  // thin column rule between the two columns
+  g.globalAlpha = 0.35; g.fillStyle = ink;
+  g.fillRect(M + colW + gap / 2, py, 1, h - py - M);
+  g.globalAlpha = 1;
+
   fakeText(g, ink, px, py + ph + 44, colW, h - (py + ph + 44) - M);   // col 1 (below photo)
   fakeText(g, ink, M + colW + gap, py, colW, h - py - M);             // col 2 (full)
 
@@ -211,17 +216,27 @@ function newsprintTex() {
   return _newsprint;
 }
 
-// fine justified "text" lines (read as columns of type from any distance)
-function fakeText(g, ink, x, y, w, h, lh = 13) {
-  g.fillStyle = ink;
+// Fine, dense justified "type" (thin, tightly-leaded lines with paragraph breaks
+// and the odd bold cross-head) so the columns read as real newsprint — not the
+// sparse straight dashes the old version produced.
+function fakeText(g, ink, x, y, w, h, lh = 8) {
   let yy = y;
   while (yy < y + h - lh) {
-    const lines = 3 + Math.floor(Math.random() * 6);
+    // occasional bold sub-headline / cross-head to break up the grey
+    if (Math.random() < 0.13 && yy + 20 < y + h) {
+      g.globalAlpha = 1; g.fillStyle = ink;
+      g.fillRect(x, yy + 3, w * (0.42 + Math.random() * 0.42), 3.6);
+      yy += 17;
+    }
+    const lines = 4 + Math.floor(Math.random() * 7);
     for (let i = 0; i < lines && yy < y + h - lh; i++) {
-      const lw = (i === lines - 1) ? w * (0.3 + Math.random() * 0.45) : w * (0.9 + Math.random() * 0.08);
-      g.globalAlpha = 0.82; g.fillRect(x, yy, Math.min(lw, w), 2.4); g.globalAlpha = 1;
+      const last = i === lines - 1;
+      const lw = last ? w * (0.24 + Math.random() * 0.5) : w * (0.93 + Math.random() * 0.06);
+      g.globalAlpha = 0.55 + Math.random() * 0.28;          // slight ink variance
+      g.fillStyle = ink; g.fillRect(x, yy, Math.min(lw, w), 1.3);
       yy += lh;
     }
-    yy += lh * 0.7;
+    g.globalAlpha = 1;
+    yy += lh * 0.85;                                          // paragraph gap
   }
 }
