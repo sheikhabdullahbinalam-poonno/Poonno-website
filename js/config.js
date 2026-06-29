@@ -58,14 +58,15 @@ export const KEYFRAMES = [
   { t: 0.54,  pos: [0.5, 3.6, -275], look: [0.0, 3.2, -332] }, // thread the trees, train running ahead
   { t: 0.548, pos: [4.6, 2.6, -337], look: [10.0, 2.2, -342] },// Creative Origins (HOLD start)
   { t: 0.638, pos: [4.6, 2.6, -338], look: [10.0, 2.2, -343] },// Creative Origins (HOLD end)
-  { t: 0.646, pos: [0.5, 3.4, -356], look: [-2.0, 4.0, -410] },// step to train roof: cross to track centre
-  { t: 0.658, pos: [-2.5, 3.8, -392],look: [-4.0, 4.5, -450] },// train banking left — signal (x=2) passes on the right
-  { t: 0.670, pos: [-4.5, 4.2, -428],look: [-5.0, 6.0, -510] },// following train as it curves deeper left
-  { t: 0.685, pos: [-5.5, 4.8, -462],look: [-4.5, 9.0, -560] },// lifting gaze, entering forest
-  { t: 0.700, pos: [-5.0, 5.0, -490],look: [1.0, 17, -610] },  // dolly up toward the moon
-  { t: 0.730, pos: [-6, 4.3, -545],  look: [-3.0, 15, -690] }, // low through the forest, gazing at the moon
-  { t: 0.759, pos: [-7, 4.0, -600],  look: [-6.0, 13, -720] }, // (window-cam rides here, moon-gazing)
-  { t: 0.789, pos: [-7, 4.0, -660],  look: [-7.0, 4.0, -712] },// forest run 2 → ease toward the approach
+  { t: 0.646, pos: [0.5, 3.2, -356], look: [-2.0, 3.8, -415] },// step to train roof
+  { t: 0.657, pos: [-2.5, 3.8, -392],look: [-3.5, 4.5, -455] },// train banks left, junction signal behind us
+  { t: 0.668, pos: [-4.5, 4.2, -428],look: [-4.5, 6.0, -515] },// following the curve
+  { t: 0.682, pos: [-5.5, 4.8, -465],look: [-5.0, 9.5, -565] },// gaze lifting — no reversals in any axis from here
+  { t: 0.700, pos: [-6.0, 5.0, -498],look: [-5.0, 15.0, -610] },// smoothly rising toward the moon
+  { t: 0.720, pos: [-6.5, 4.8, -535],look: [-5.5, 17.0, -650] },// peak moon-gaze
+  { t: 0.740, pos: [-7.0, 4.4, -575],look: [-6.0, 14.0, -695] },// begin descent
+  { t: 0.759, pos: [-7.0, 4.0, -608],look: [-6.5, 10.0, -720] },// returning to level
+  { t: 0.789, pos: [-7.0, 4.0, -660],look: [-7.0, 4.0, -712] },// level gaze, Unilever approach
   { t: 0.804, pos: [-7, 2.6, -715],  look: [-11.0, 2.0, -718] },// Unilever Years (HOLD start)
   { t: 0.880, pos: [-7, 2.6, -716],  look: [-11.0, 2.0, -719] },// Unilever Years (HOLD end)
   { t: 0.910, pos: [0, 16, -755],    look: [1.0, 3.0, -792] }, // rise, reveal Y junction
