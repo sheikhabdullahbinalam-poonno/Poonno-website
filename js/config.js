@@ -58,11 +58,11 @@ export const KEYFRAMES = [
   { t: 0.54,  pos: [0.5, 3.6, -275], look: [0.0, 3.2, -332] }, // thread the trees, train running ahead
   { t: 0.548, pos: [4.6, 2.6, -337], look: [10.0, 2.2, -342] },// Creative Origins (HOLD start)
   { t: 0.638, pos: [4.6, 2.6, -338], look: [10.0, 2.2, -343] },// Creative Origins (HOLD end)
-  { t: 0.648, pos: [5.5, 3.5, -358], look: [2.0, 4.5, -420] },// S-curve bow 1: swing RIGHT (signal at x=2,z=-400 on our left)
-  { t: 0.660, pos: [4.0, 4.5, -388], look: [0.0, 5.5, -460] },// arcing left, approaching junction from right side
-  { t: 0.672, pos: [-2.0, 5.2, -420],look: [-1.5, 7.0, -500] },// S-curve bow 2: past junction signal (left side, x-clearance ≥4)
-  { t: 0.683, pos: [-4.0, 5.0, -450],look: [-1.0, 10.0, -550] },// settling into the forest corridor
-  { t: 0.700, pos: [-4.0, 5.0, -478],look: [1.0, 17, -610] },  // dolly down while turning UP toward the moon
+  { t: 0.646, pos: [0.5, 3.4, -356], look: [-2.0, 4.0, -410] },// step to train roof: cross to track centre
+  { t: 0.658, pos: [-2.5, 3.8, -392],look: [-4.0, 4.5, -450] },// train banking left — signal (x=2) passes on the right
+  { t: 0.670, pos: [-4.5, 4.2, -428],look: [-5.0, 6.0, -510] },// following train as it curves deeper left
+  { t: 0.685, pos: [-5.5, 4.8, -462],look: [-4.5, 9.0, -560] },// lifting gaze, entering forest
+  { t: 0.700, pos: [-5.0, 5.0, -490],look: [1.0, 17, -610] },  // dolly up toward the moon
   { t: 0.730, pos: [-6, 4.3, -545],  look: [-3.0, 15, -690] }, // low through the forest, gazing at the moon
   { t: 0.759, pos: [-7, 4.0, -600],  look: [-6.0, 13, -720] }, // (window-cam rides here, moon-gazing)
   { t: 0.789, pos: [-7, 4.0, -660],  look: [-7.0, 4.0, -712] },// forest run 2 → ease toward the approach
