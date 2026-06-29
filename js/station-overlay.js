@@ -9,7 +9,7 @@
 //  - Unilever: after the moon-gaze (gone ~0.752) and before arrival (~0.804)
 const STATIONS = [
   { t0: 0.495, t1: 0.545, name: 'Creative Origins', tag: 'The beginnings of a creative pursuit' },
-  { t0: 0.758, t1: 0.802, name: 'Unilever Years',   tag: 'Projects, problems, and the pursuit of better solutions' },
+  { t0: 0.738, t1: 0.782, name: 'Unilever Years',   tag: 'Projects, problems, and the pursuit of better solutions' },
 ];
 
 let el, nameEl, tagEl, built = false;
