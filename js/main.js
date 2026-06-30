@@ -14,7 +14,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 
 import { BLOOM, RENDER, CAMERA, BEATS } from './config.js';
-import { buildWorld } from './world.js';
+import { buildWorld, updateStations } from './world.js';
 import { makeEnvironment } from './environment.js';
 import { CameraRig } from './camera-rig.js';
 import { Train } from './train.js';
@@ -229,6 +229,7 @@ function animate() {
   // source of camera truth (the rig) owns the moon gaze now.
   // windowCam(t);
   sky.update(dt);
+  updateStations(clock.elapsedTime);   // gentle gas-lamp flame flicker
   // idle rumble + swell with the train's speed, boosted through the speed beat
   audio.setRumbleLevel(Math.min(1, 0.4 + 0.42 * train.speed + 0.35 * jerkAmp(t)));
   atmosphere.update(dt);

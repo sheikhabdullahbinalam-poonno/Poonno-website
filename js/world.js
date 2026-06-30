@@ -17,6 +17,19 @@ const RAIL_MATERIAL = new THREE.MeshStandardMaterial({ color: 0x8A929A, metalnes
 const SLEEPER_MATERIAL = new THREE.MeshStandardMaterial({ color: 0x3A2A1E, roughness: 0.95, metalness: 0.05 });
 const ONE = new THREE.Vector3(1, 1, 1);
 
+// Gas-lamp flicker registry: each lamp's emissive glass + point light + glow sprite,
+// driven by updateStations(time) so they breathe like real flame.
+const STATION_LAMPS = [];
+const _fl = (t, p) => 0.84 + 0.16 * (0.6 * Math.sin(t * 6.5 + p) + 0.4 * Math.sin(t * 16.0 + p * 2.3));
+export function updateStations(time) {
+  for (const L of STATION_LAMPS) {
+    const f = _fl(time, L.phase);
+    L.mat.emissiveIntensity = L.eBase * f;
+    L.light.intensity = L.lBase * f;
+    if (L.glow) L.glow.material.opacity = L.gBase * f;
+  }
+}
+
 export function buildWorld(scene) {
   scene.fog = new THREE.FogExp2(FOG.color, FOG.density);
   scene.add(makeSky());
@@ -26,6 +39,7 @@ export function buildWorld(scene) {
   addLandmarks(scene);
   addTrack(scene);
   addNameplates(scene);
+  addTelegraph(scene);
 }
 
 // ---- dusk gradient sky dome (unaffected by fog so the gradient always reads) -
@@ -394,6 +408,21 @@ function lampGlowTex() {
   g.fillStyle = grd; g.fillRect(0, 0, 128, 128);
   _lampGlow = new THREE.CanvasTexture(c); _lampGlow.colorSpace = THREE.SRGBColorSpace; return _lampGlow;
 }
+// gravel ballast texture (grey stones) for the trackbed
+let _gravelTex;
+function gravelTex() {
+  if (_gravelTex) return _gravelTex;
+  const s = 256, c = document.createElement('canvas'); c.width = c.height = s;
+  const g = c.getContext('2d');
+  g.fillStyle = '#3b3934'; g.fillRect(0, 0, s, s);
+  for (let i = 0; i < 1400; i++) {
+    const v = 50 + Math.floor(Math.random() * 70);
+    g.fillStyle = `rgb(${v},${v - 4},${v - 8})`;
+    g.beginPath(); g.arc(Math.random() * s, Math.random() * s, 1 + Math.random() * 2.6, 0, 6.283); g.fill();
+  }
+  _gravelTex = new THREE.CanvasTexture(c); _gravelTex.wrapS = _gravelTex.wrapT = THREE.RepeatWrapping;
+  _gravelTex.repeat.set(3, 16); _gravelTex.colorSpace = THREE.SRGBColorSpace; return _gravelTex;
+}
 
 function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, name = '' }) {
   const G = new THREE.Group(); scene.add(G);
@@ -413,9 +442,9 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
     base: new THREE.Color(0x191a18), rust: new THREE.Color(0x4f2d1a),
     yLow: 0.0, yHigh: 4.0, paintRough: 0.62, rustRough: 0.97, metalBase: 0.62, scale: 1.6, panel: 0.0, rustAmt: 0.42,
   });
-  // window glass — a faint WARM interior glow (like a lit room behind it) so the
-  // panes read at a glance, plus a cool sheen for the moonlit reflection (ref photo)
-  const winGlow = new THREE.MeshStandardMaterial({ color: 0x140d05, emissive: 0xffb260, emissiveIntensity: 0.7, roughness: 0.22, metalness: 0.45, envMapIntensity: 0.9 });
+  // window glass — a DIM warm interior glow (a low-lit room behind it) so the panes
+  // just read, plus a cool sheen for the moonlit reflection (ref photo)
+  const winGlow = new THREE.MeshStandardMaterial({ color: 0x140d05, emissive: 0xffb260, emissiveIntensity: 0.32, roughness: 0.22, metalness: 0.45, envMapIntensity: 0.8 });
 
   const box = (w, h, dp, mat, d, y, dz, ry = 0) => {
     const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, dp), mat);
@@ -529,7 +558,6 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
 
   // ---- ornate wrought-iron gas lamp (ref photo): stepped base, fluted post,
   // glass-paned lantern with iron frame, peaked cap + finial. Dim warm glass. ----
-  const glassMat = new THREE.MeshStandardMaterial({ color: 0x2a1d0c, emissive: 0xffb45a, emissiveIntensity: 0.5, roughness: 0.5, transparent: true, opacity: 0.9 });
   const addLamp = (lx, lz) => {
     const y0 = deckTop;
     const m = (geo, y) => { const e = new THREE.Mesh(geo, iron); e.position.set(lx, y0 + y, z + lz); add(e); return e; };
@@ -539,6 +567,8 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
     m(new THREE.CylinderGeometry(0.12, 0.12, 0.1, 12), 2.0);          // mid collar
     const ly = 3.7;
     m(new THREE.BoxGeometry(0.5, 0.08, 0.5), ly - 0.34);              // lantern floor
+    // per-lamp glass material so each lantern flickers independently (flame)
+    const glassMat = new THREE.MeshStandardMaterial({ color: 0x2a1d0c, emissive: 0xffb45a, emissiveIntensity: 0.5, roughness: 0.5, transparent: true, opacity: 0.9 });
     const glass = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.58, 0.4), glassMat);
     glass.position.set(lx, y0 + ly, z + lz); add(glass);
     for (const ex of [-0.21, 0.21]) for (const ez of [-0.21, 0.21]) {  // iron frame corners
@@ -557,6 +587,8 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
     glow.position.set(lx, y0 + ly, z + lz); glow.scale.set(1.6, 1.6, 1); add(glow);
     const L = new THREE.PointLight(0xffb45a, 1.8, 12, 2);
     L.position.set(lx, y0 + ly, z + lz); add(L);
+    // register for the gentle flame flicker
+    STATION_LAMPS.push({ mat: glassMat, light: L, glow, eBase: 0.5, lBase: 1.8, gBase: 0.5, phase: Math.random() * 6.28 });
   };
   addLamp(X(nearD + 0.5), -12); addLamp(X(nearD + 0.5), 2); addLamp(X(nearD + 0.5), 15);
   // NB: no building light — the station is dark/unlit (only the platform lamps glow).
@@ -587,6 +619,18 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
     const sl = new THREE.PointLight(0xffce93, 1.5, 5.5, 2);
     sl.position.set(X(nearD + 3.0), 3.0, signZ + 1.5); add(sl);
   }
+
+  // ---- ground transition: gravel trackbed + grass verges so the platform meets
+  // the world instead of floating on the dark ground plane ----
+  const plane = (w2, d2, mat, gx, gz) => {
+    const p = new THREE.Mesh(new THREE.PlaneGeometry(w2, d2), mat);
+    p.rotation.x = -Math.PI / 2; p.position.set(gx, 0.04, gz); add(p);
+  };
+  const grassMatV = new THREE.MeshStandardMaterial({ color: 0x202c18, roughness: 1, metalness: 0 });
+  plane(16, PLEN + 26, grassMatV, X(farD + 8), z);                     // verge behind the platform
+  plane(2.4, PLEN + 26, grassMatV, X(nearD - 1.7), z);                 // grass strip platform→track
+  const gravelMat = new THREE.MeshStandardMaterial({ map: gravelTex(), color: 0x55524b, roughness: 1, metalness: 0 });
+  plane(5.4, PLEN + 30, gravelMat, trackX, z);                         // gravel ballast under the rails
 
   // ---- weathering: moss, weeds, leaf litter, and a little debris ----
   const moss = new THREE.MeshStandardMaterial({ color: 0x2c361f, roughness: 1, metalness: 0 });
@@ -871,6 +915,55 @@ function junctionMarker(scene, x, z, signalColor) {
 
   g.position.set(x + 2, 0, z);
   scene.add(g);
+}
+
+// ---- telegraph line: creosote poles with crossarms + insulators and sagging
+// wires, receding down the line for depth + period detail. Two runs, each on the
+// side AWAY from that region's platform so they never clutter the station shots. --
+function addTelegraph(scene) {
+  const poleMat = new THREE.MeshStandardMaterial({ color: 0x1b130a, roughness: 0.95, metalness: 0.04 });
+  const wireMat = new THREE.MeshStandardMaterial({ color: 0x0b0b0d, roughness: 0.6, metalness: 0.5 });
+  const insMat = new THREE.MeshStandardMaterial({ color: 0x2a2622, roughness: 0.7 });
+  const add = (m) => { m.frustumCulled = false; scene.add(m); return m; };
+  const runs = [
+    { x: -8, z0: 18, z1: -382, n: 18 },     // start → Creative (platform is +X)
+    { x: 4, z0: -402, z1: -760, n: 16 },    // forest → Unilever (platform is −X)
+  ];
+  for (const run of runs) {
+    const poles = [];
+    for (let i = 0; i < run.n; i++) {
+      const pz = run.z0 + (run.z1 - run.z0) * (i / (run.n - 1));
+      const px = run.x + (Math.random() - 0.5) * 0.7;
+      const H = 7 + Math.random() * 0.7;
+      const p = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.14, H, 8), poleMat);
+      p.position.set(px, H / 2, pz); p.rotation.z = (Math.random() - 0.5) * 0.04; add(p);
+      const arms = [];
+      for (const [ay, aw] of [[H - 0.4, 2.4], [H - 1.2, 1.8]]) {
+        const arm = new THREE.Mesh(new THREE.BoxGeometry(aw, 0.12, 0.12), poleMat);
+        arm.position.set(px, ay, pz); add(arm);
+        for (const sx of [-aw / 2 + 0.2, aw / 2 - 0.2]) {
+          const ins = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.14, 6), insMat);
+          ins.position.set(px + sx, ay + 0.12, pz); add(ins);
+        }
+        arms.push({ y: ay, w: aw });
+      }
+      poles.push({ x: px, z: pz, arms });
+    }
+    // sagging wires between consecutive poles, one per insulator
+    for (let i = 0; i < poles.length - 1; i++) {
+      const a = poles[i], b = poles[i + 1];
+      for (let k = 0; k < a.arms.length; k++) {
+        const arm = a.arms[k];
+        for (const sx of [-arm.w / 2 + 0.2, arm.w / 2 - 0.2]) {
+          const p0 = new THREE.Vector3(a.x + sx, arm.y + 0.18, a.z);
+          const p1 = new THREE.Vector3(b.x + sx, arm.y + 0.18, b.z);
+          const mid = p0.clone().lerp(p1, 0.5); mid.y -= 0.85;     // catenary sag
+          const curve = new THREE.QuadraticBezierCurve3(p0, mid, p1);
+          add(new THREE.Mesh(new THREE.TubeGeometry(curve, 8, 0.018, 4, false), wireMat));
+        }
+      }
+    }
+  }
 }
 
 // ---- station nameplates (§6.6, ref Name plate.webp) -------------------------
