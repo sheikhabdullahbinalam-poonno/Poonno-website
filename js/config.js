@@ -28,7 +28,7 @@ export const SKY = { top: 0x0B1622, horizon: 0x294257 };  // horizon lifted to b
 
 // §4 — Post-processing (UnrealBloom). Threshold nudged up from the spec's 0.2 so
 // the warm emissive sources glow without blowing out the close station views.
-export const BLOOM = { strength: 0.82, radius: 0.6, threshold: 0.3 };
+export const BLOOM = { strength: 0.82, radius: 0.6, threshold: 0.52 };
 
 // §4 — Renderer
 export const RENDER = { exposure: 1.05, maxPixelRatio: 2 };

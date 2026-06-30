@@ -1047,18 +1047,24 @@ img.bw, .bw img { filter: grayscale(1) contrast(1.14) brightness(0.9); }
   position: fixed; inset: 0; z-index: 48; pointer-events: none;
   opacity: 0; transition: opacity 0.55s cubic-bezier(0.23,1,0.32,1);
   --accent: #F4A259;
-  background: radial-gradient(120% 120% at 18% 50%, rgba(4,7,12,0) 30%, rgba(4,7,12,0.55) 100%);
+  /* Active-Theory backdrop: the scene recedes into a deep, near-solid field; a soft
+     accent glow blooms behind the hero card (lower-left) while the read-side darkens. */
+  background:
+    radial-gradient(64% 74% at 24% 70%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 62%),
+    radial-gradient(90% 120% at 16% 50%, rgba(4,7,12,0.6) 0%, rgba(4,7,12,0.86) 46%, rgba(4,7,12,0.97) 100%),
+    linear-gradient(180deg, rgba(4,7,12,0.5), rgba(2,4,8,0.84));
 }
 #cards3d-detail.show { opacity: 1; pointer-events: auto; }
 #cards3d-detail .cd-close {
   position: absolute; top: 26px; right: 30px; width: 44px; height: 44px;
+  z-index: 5;                       /* above .cd-scroll, whose transparent top would eat the click */
   border: 1px solid rgba(245,235,220,0.28); border-radius: 50%;
   background: rgba(8,12,18,0.4); color: var(--cream); font-size: 22px; line-height: 1;
   cursor: pointer; backdrop-filter: blur(6px); transition: border-color 0.3s, transform 0.3s;
 }
 #cards3d-detail .cd-close:hover { border-color: var(--accent); transform: rotate(90deg); }
 #cards3d-detail .cd-scroll {
-  position: absolute; top: 0; right: 0; height: 100%;
+  position: absolute; top: 0; right: 0; height: 100%; z-index: 1;
   width: min(46vw, 560px); padding: 12vh 6vw 10vh 3vw;
   overflow-y: auto; overscroll-behavior: contain;
   transform: translateX(40px); transition: transform 0.6s cubic-bezier(0.23,1,0.32,1);
@@ -1084,7 +1090,26 @@ img.bw, .bw img { filter: grayscale(1) contrast(1.14) brightness(0.9); }
 }
 #cards3d-detail .cd-link span { color: var(--accent); font-size: 16px; }
 #cards3d-detail .cd-link:hover { border-color: var(--accent); background: rgba(244,162,89,0.07); transform: translateX(4px); }
+/* "scroll to exit" guide — bottom-left, with a thin rail and a gentle drift, so the
+   viewer knows scrolling (not just the ✕) closes the case. Lingers, then softens. */
+#cards3d-detail .cd-exit-hint {
+  position: absolute; left: 6vw; bottom: 6vh; display: flex; align-items: center; gap: 12px;
+  font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.26em; text-transform: uppercase;
+  color: rgba(245,235,220,0.45); opacity: 0; transition: opacity 0.8s ease, color 0.8s ease; pointer-events: none;
+}
+#cards3d-detail .cd-exit-rail {
+  position: relative; width: 22px; height: 34px; border: 1px solid rgba(245,235,220,0.4); border-radius: 11px;
+}
+#cards3d-detail .cd-exit-rail::after {
+  content: ''; position: absolute; left: 50%; top: 7px; width: 3px; height: 6px; border-radius: 2px;
+  background: var(--accent); transform: translateX(-50%); animation: cdExitDrift 1.9s ease-in-out infinite;
+}
+@keyframes cdExitDrift { 0%,100% { transform: translate(-50%, 0); opacity: 0.4; } 50% { transform: translate(-50%, 12px); opacity: 1; } }
+#cards3d-detail.show .cd-exit-hint { opacity: 0.55; }   /* visible while open */
+#cards3d-detail.show.hint-on .cd-exit-hint { opacity: 0.95; color: rgba(245,235,220,0.72); } /* brighter at first */
+@media (prefers-reduced-motion: reduce) { #cards3d-detail .cd-exit-rail::after { animation: none; } }
 @media (max-width: 760px) {
+  #cards3d-detail .cd-exit-hint { left: 50%; transform: translateX(-50%); bottom: 4vh; }
   #cards3d-detail .cd-scroll { width: 100vw; padding: 14vh 8vw 12vh; }
   #cards3d-detail { background: linear-gradient(180deg, rgba(4,7,12,0.2), rgba(4,7,12,0.8)); }
 }
