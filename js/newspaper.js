@@ -62,6 +62,22 @@ export class Newspaper {
           o.material.emissive = new THREE.Color(0xffffff);
           o.material.emissiveMap = sheet;
           o.material.emissiveIntensity = 0;
+          // mirror the UV on BACK faces so the print reads correctly from EITHER side —
+          // the folded sheet shows both faces as it tumbles, and this keeps all readable.
+          o.material.onBeforeCompile = (shader) => {
+            shader.fragmentShader = shader.fragmentShader
+              .replace('#include <map_fragment>',
+                `#ifdef USE_MAP
+                  vec2 _muv = vMapUv; if(!gl_FrontFacing) _muv.x = 1.0 - _muv.x;
+                  diffuseColor *= texture2D( map, _muv );
+                #endif`)
+              .replace('#include <emissivemap_fragment>',
+                `#ifdef USE_EMISSIVEMAP
+                  vec2 _euv = vEmissiveMapUv; if(!gl_FrontFacing) _euv.x = 1.0 - _euv.x;
+                  totalEmissiveRadiance *= texture2D( emissiveMap, _euv ).rgb;
+                #endif`);
+          };
+          o.material.customProgramCacheKey = () => 'newsFlipBack_v1';
           o.material.needsUpdate = true;
           this.heroMat = o.material;
         });
@@ -264,9 +280,9 @@ function newsprintTex() {
 
   _newsprint = new THREE.CanvasTexture(c);
   _newsprint.colorSpace = THREE.SRGBColorSpace;
-  // flipped both ways so the masthead lands UN-mirrored on the panel facing the camera at rest
+  // flipY so the masthead lands on the panel facing the camera at rest. Back faces are
+  // un-mirrored in the shader (gl_FrontFacing) so the text reads right on EVERY fly angle.
   _newsprint.flipY = true;
-  _newsprint.wrapS = THREE.RepeatWrapping; _newsprint.repeat.x = -1; _newsprint.offset.x = 1;
   _newsprint.anisotropy = 8;
   return _newsprint;
 }
@@ -322,7 +338,6 @@ function newsprintBumpTex(w, h) {
     g.lineWidth = 1; g.beginPath(); const y = Math.random() * h; g.moveTo(0, y); g.lineTo(w, y + (Math.random() - 0.5) * 50); g.stroke();
   }
   _newsBump = new THREE.CanvasTexture(c); _newsBump.flipY = true; // match the colour map
-  _newsBump.wrapS = THREE.RepeatWrapping; _newsBump.repeat.x = -1; _newsBump.offset.x = 1;
   return _newsBump;
 }
 
