@@ -229,7 +229,7 @@ function animate() {
   // source of camera truth (the rig) owns the moon gaze now.
   // windowCam(t);
   sky.update(dt);
-  updateStations(clock.elapsedTime);   // gentle gas-lamp flame flicker
+  updateStations(clock.elapsedTime, t);   // gas-lamp flicker + gate station lights by view
   // idle rumble + swell with the train's speed, boosted through the speed beat
   audio.setRumbleLevel(Math.min(1, 0.4 + 0.42 * train.speed + 0.35 * jerkAmp(t)));
   atmosphere.update(dt);

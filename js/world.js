@@ -17,11 +17,17 @@ const RAIL_MATERIAL = new THREE.MeshStandardMaterial({ color: 0x8A929A, metalnes
 const SLEEPER_MATERIAL = new THREE.MeshStandardMaterial({ color: 0x3A2A1E, roughness: 0.95, metalness: 0.05 });
 const ONE = new THREE.Vector3(1, 1, 1);
 
-// Gas-lamp flicker registry: each lamp's emissive glass + point light + glow sprite,
-// driven by updateStations(time) so they breathe like real flame.
+// Gas-lamp flicker registry + per-station light groups. updateStations(time, t)
+// flickers the lamps AND gates each station's PointLights to when that station is in
+// view — keeping the active light count ~10 across the journey instead of ~32.
 const STATION_LAMPS = [];
+const STATION_GROUPS = [];   // { lights:[PointLight…], tMin, tMax, on }
 const _fl = (t, p) => 0.84 + 0.16 * (0.6 * Math.sin(t * 6.5 + p) + 0.4 * Math.sin(t * 16.0 + p * 2.3));
-export function updateStations(time) {
+export function updateStations(time, t) {
+  for (const g of STATION_GROUPS) {
+    const on = t >= g.tMin && t <= g.tMax;
+    if (g.on !== on) { for (const L of g.lights) L.visible = on; g.on = on; }
+  }
   for (const L of STATION_LAMPS) {
     const f = _fl(time, L.phase);
     L.mat.emissiveIntensity = L.eBase * f;
@@ -425,9 +431,10 @@ function gravelTex() {
   _gravelTex.repeat.set(3, 16); _gravelTex.colorSpace = THREE.SRGBColorSpace; return _gravelTex;
 }
 
-function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, name = '' }) {
+function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, name = '', tMin = 0, tMax = 1 }) {
   const G = new THREE.Group(); scene.add(G);
-  const add = (m) => { m.frustumCulled = false; G.add(m); return m; };
+  // Static geometry → keep frustum culling ON (off-screen stations aren't drawn).
+  const add = (m) => { G.add(m); return m; };
   const X = (d) => trackX + side * d;                 // d = distance out from the track
   const faceTrack = side > 0 ? -Math.PI / 2 : Math.PI / 2;  // a +X face turns toward the track
 
@@ -621,7 +628,6 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
     // set WELL BACK onto the platform so the board never overhangs the track/train
     sign.position.set(X(nearD + 3.0), 0, signZ);
     sign.rotation.y = -side * 0.28;                                    // faced +z, angled slightly to the track
-    sign.traverse((o) => { o.frustumCulled = false; });
     G.add(sign);
     // a dim dedicated lamp so ONLY the board reads (short range, warm)
     const sl = new THREE.PointLight(0xffce93, 1.5, 5.5, 2);
@@ -699,6 +705,11 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
   rim.position.set(X(bD + 2), bH + 12, z - bW); add(rim);
   const towerWash = new THREE.PointLight(0xbcd2ee, 1.5, 16, 2);     // faint cool on the tower
   towerWash.position.set(X(tD - 2.2), tH * 0.72, z + tDZ + 2.2); add(towerWash);
+
+  // gather this station's PointLights and gate them to when it's in view (perf).
+  const sLights = []; G.traverse((o) => { if (o.isLight) sLights.push(o); });
+  for (const L of sLights) L.visible = false;                      // start off (updateStations enables on approach)
+  STATION_GROUPS.push({ lights: sLights, tMin, tMax, on: false });
   return G;
 }
 
@@ -727,9 +738,10 @@ function addLandmarks(scene) {
   }
 
   // Creative Origins — cinematic station on the +X side (camera looks right).
-  buildStation(scene, { z: -340, side: 1, trackX: 0, accent: PALETTE.ember, name: 'CREATIVE ORIGINS' });
-  // Unilever Years — same station mirrored to the −X side (track x≈−5).
-  buildStation(scene, { z: -720, side: -1, trackX: -5, accent: PALETTE.haze, name: 'UNILEVER YEARS' });
+  // tMin/tMax gate its lights to the approach→depart window (hold is 0.548–0.638).
+  buildStation(scene, { z: -340, side: 1, trackX: 0, accent: PALETTE.ember, name: 'CREATIVE ORIGINS', tMin: 0.50, tMax: 0.67 });
+  // Unilever Years — same station mirrored to the −X side (track x≈−5) (hold 0.804–0.880).
+  buildStation(scene, { z: -720, side: -1, trackX: -5, accent: PALETTE.haze, name: 'UNILEVER YEARS', tMin: 0.75, tMax: 0.90 });
 
   // Finale: a step-down platform bridges from the train's stop (z≈−793, behind
   // the camera) forward to the great tree (z≈−825). No station here — just the tree.
@@ -933,7 +945,7 @@ function addTelegraph(scene) {
   const poleMat = addMoonRim(new THREE.MeshStandardMaterial({ color: 0x1b130a, roughness: 0.95, metalness: 0.04 }), { strength: 0.22, power: 3.2 });
   const wireMat = addMoonRim(new THREE.MeshStandardMaterial({ color: 0x0b0b0d, roughness: 0.6, metalness: 0.5 }), { strength: 0.2, power: 2.8 });
   const insMat = addMoonRim(new THREE.MeshStandardMaterial({ color: 0x2a2622, roughness: 0.7 }), { strength: 0.2, power: 3.2 });
-  const add = (m) => { m.frustumCulled = false; scene.add(m); return m; };
+  const add = (m) => { scene.add(m); return m; };   // static → frustum culling stays on
   const runs = [
     { x: -8, z0: 18, z1: -382, n: 18 },     // start → Creative (platform is +X)
     { x: 4, z0: -402, z1: -760, n: 16 },    // forest → Unilever (platform is −X)
