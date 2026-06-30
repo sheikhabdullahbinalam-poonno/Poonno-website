@@ -114,22 +114,26 @@ export class Newspaper {
 
   update(t, camera) {
     if (!this.hero) return;
-    if (t > NEWS.gone) { this.hero.visible = false; this.flyAmt = 1; return; }
-    this.hero.visible = true;
 
+    // Auto-play: one scroll past fly0 triggers the whole animation (~1.5 s, scroll-independent)
     if (t <= NEWS.fly0) {
+      this._flyStartMs = null;
       this.flyAmt = 0;
-      if (this.heroMat) this.heroMat.emissiveIntensity = 0.2;     // soft self-glow at rest — reads as a luminous object to interact with
-      const fl = Math.sin(performance.now() * 0.0022) * 0.025;   // resting flutter
+      this.hero.visible = true;
+      if (this.heroMat) this.heroMat.emissiveIntensity = 0.2;
+      const fl = Math.sin(performance.now() * 0.0022) * 0.025;
       this.hero.position.copy(this.restPos); this.hero.position.y += fl;
       this.hero.quaternion.copy(this.restQuat);
       this.hero.scale.setScalar(0.9);
       return;
     }
 
-    // k: 0..1 across the fly (linear; each phase eases internally so motion is fluid)
-    const k = Math.min(1, (t - NEWS.fly0) / (NEWS.fly1 - NEWS.fly0));
+    if (this._flyStartMs === null) this._flyStartMs = performance.now();
+    const k = Math.min(1, (performance.now() - this._flyStartMs) / 1500);
     this.flyAmt = k;
+
+    if (k >= 1) { this.hero.visible = false; this.flyAmt = 1; return; }
+    this.hero.visible = true;
     const now = performance.now();
 
     // Target: a point just in front of the camera (where it faces the viewer).

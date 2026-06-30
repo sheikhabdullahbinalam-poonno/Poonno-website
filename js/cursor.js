@@ -4,7 +4,7 @@
 //  No glow. Disabled on touch / reduced motion so there's always a usable pointer.
 // ============================================================================
 
-const HOT = 'a, button, .at-card, .nav-jump, #whistle-rope, .car-prev, .car-next, .case-link, .case-close, #mute-btn, #enter-btn, #nav-logo, #read-next';
+const HOT = 'a, button, .at-card, .nav-jump, #whistle-rope, .car-prev, .car-next, .case-link, .case-close, .cd-close, #mute-btn, #enter-btn, #nav-logo, #read-next';
 
 export function initCursor() {
   const ring = document.getElementById('cursor');
@@ -15,6 +15,7 @@ export function initCursor() {
   }
 
   let mx = window.innerWidth / 2, my = window.innerHeight / 2, rx = mx, ry = my;
+  let _prev = 0;
 
   window.addEventListener('mousemove', (e) => {
     mx = e.clientX; my = e.clientY;
@@ -25,11 +26,15 @@ export function initCursor() {
   window.addEventListener('mousedown', () => ring.classList.add('down'));
   window.addEventListener('mouseup', () => ring.classList.remove('down'));
 
-  (function loop() {
+  (function loop(ts) {
     requestAnimationFrame(loop);
-    rx += (mx - rx) * 0.2; ry += (my - ry) * 0.2;
+    // Frame-rate-independent lag: ring reaches cursor in ~4 frames at 60 fps
+    const dt = Math.min(0.05, (_prev ? (ts - _prev) / 1000 : 0.016));
+    _prev = ts;
+    const f = Math.min(1, dt * 26);
+    rx += (mx - rx) * f; ry += (my - ry) * f;
     ring.style.transform = `translate(${rx}px, ${ry}px)`;
-  })();
+  })(0);
 
   document.documentElement.classList.add('has-cursor');
 }

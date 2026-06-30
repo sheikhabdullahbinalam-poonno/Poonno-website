@@ -89,53 +89,48 @@ export function initUI({ audio, goTo, onWhistle }) {
   });
 }
 
-// The signature "writes" itself left→right (a soft glowing pen tip leads the
-// reveal). It holds near the end until the scene is ready, so the writing also
-// serves as the load-progress indicator.
+// Night-train ticket countdown (0 → 100). Holds near 100 until the scene is ready,
+// then unlocks the Enter button. Simple, thematic, no external fetch needed.
 async function runLoader(sigBox) {
-  const svg = await injectSignature(sigBox);
+  sigBox.innerHTML = `
+    <div class="tl-wrap">
+      <div class="tl-perf">
+        <div class="tl-holes"></div>
+        <div class="tl-body">
+          <div class="tl-name">POONNO</div>
+          <div class="tl-rule"></div>
+          <div class="tl-row"><span class="tl-k">TRAIN</span><span class="tl-v">NIGHT EXPRESS</span></div>
+          <div class="tl-row"><span class="tl-k">FROM</span><span class="tl-v">CURIOSITY</span></div>
+          <div class="tl-row"><span class="tl-k">TO</span><span class="tl-v">HORIZONS CROSSING</span></div>
+          <div class="tl-rule"></div>
+          <div class="tl-pct-row"><span class="tl-pct" id="tl-num">00</span><span class="tl-pct-sign">%</span></div>
+          <div class="tl-status" id="tl-status">BOARDING</div>
+        </div>
+        <div class="tl-holes"></div>
+      </div>
+    </div>`;
 
-  const tip = document.createElement('div');
-  tip.className = 'sig-tip';
-  sigBox.appendChild(tip);
-
-  if (!svg || REDUCED) { if (svg) svg.style.clipPath = 'none'; tip.remove(); return; }
-
-  svg.style.clipPath = 'inset(0 100% 0 0)'; // fully hidden, revealed from the left
+  const numEl = sigBox.querySelector('#tl-num');
+  const statusEl = sigBox.querySelector('#tl-status');
 
   let ready = false;
   (function poll() { if (window.__poonno) ready = true; else setTimeout(poll, 80); })();
 
-  const DUR = 1800;
+  const DUR = 2000;
   const start = performance.now();
   await new Promise((resolve) => {
     function frame(now) {
       const timed = easeInOut(Math.min(1, (now - start) / DUR));
-      const cap = ready ? 1 : 0.9;            // hold near the end until ready
+      const cap = ready ? 1 : 0.92;
       const r = Math.min(cap, timed);
-      svg.style.clipPath = `inset(0 ${((1 - r) * 100).toFixed(2)}% 0 0)`;
-      tip.style.left = (r * sigBox.clientWidth).toFixed(1) + 'px';
-      tip.style.opacity = (r > 0.02 && r < 0.985) ? '1' : '0';
-      if (r >= 0.999 && ready) { tip.style.opacity = '0'; setTimeout(() => tip.remove(), 300); resolve(); }
+      const n = Math.floor(r * 100);
+      numEl.textContent = n.toString().padStart(2, '0');
+      if (statusEl) statusEl.textContent = r >= 0.92 ? (ready ? 'ALL ABOARD' : 'LOADING...') : 'BOARDING';
+      if (r >= 0.999 && ready) resolve();
       else requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);
   });
-}
-
-async function injectSignature(sigBox) {
-  try {
-    const res = await fetch('assets/img/Poonno%20Signature.svg');
-    if (!res.ok) throw new Error('fetch failed');
-    sigBox.innerHTML = await res.text();
-    const svg = sigBox.querySelector('svg');
-    const path = sigBox.querySelector('path');
-    if (path) path.style.fill = CREAM;
-    return svg;
-  } catch (e) {
-    sigBox.innerHTML = '<div style="font-family:Sacramento,cursive;font-size:64px;color:' + CREAM + '">Poonno</div>';
-    return null;
-  }
 }
 
 const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);

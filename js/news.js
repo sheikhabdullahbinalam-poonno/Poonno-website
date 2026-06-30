@@ -20,6 +20,7 @@ const U = {
 };
 
 let overlay, wrap, page1, vignette, board, guide, guideLabel, whistleHint, whistleRope, built = false;
+let _turnStartMs = null;  // auto-play timer for page flip
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function masthead() {
@@ -150,9 +151,11 @@ export function updateNews(t) {
   const sc = 1 + out * 0.14, ty = out * -5;
   wrap.style.transform = `translate(-50%, -50%) translateY(${ty.toFixed(1)}vh) scale(${sc.toFixed(3)})`;
 
-  // page-turn: the top page lifts off the spine and arcs over — a natural turn,
-  // not a flat flip (3D lift + curl shadow + it darkens as it stands up to the light)
-  const turn = smooth(clamp((t - U.read1) / (U.turn1 - U.read1), 0, 1));
+  // page-turn: one scroll past read1 triggers the whole flip (~0.85 s, scroll-independent)
+  if (t < U.read1) { _turnStartMs = null; }
+  else if (_turnStartMs === null) { _turnStartMs = performance.now(); }
+  const _turnK = _turnStartMs ? Math.min(1, (performance.now() - _turnStartMs) / 850) : 0;
+  const turn = smooth(REDUCED ? clamp((t - U.read1) / (U.turn1 - U.read1), 0, 1) : _turnK);
   const ang = REDUCED ? (turn > 0.5 ? -180 : 0) : -180 * turn;
   const arc = Math.sin(turn * Math.PI);               // 0 → 1 → 0 across the turn
   page1.style.transform = REDUCED ? `rotateY(${ang}deg)`

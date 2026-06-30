@@ -17,12 +17,13 @@ import { PALETTE, TRAIN_PATH } from './config.js';
 import { preloadModels, getModel, normalize } from './models.js';
 import { weatheredMetal } from './materials.js';
 
-const BODY_Y = 1.9;     // body-centre height above the rail
-// Real car lengths (world units, after TRAIN_SCALE) so cars couple nose-to-tail
-// instead of sitting on a fixed centre-to-centre interval (the engine is short).
-const ENGINE_LEN = 8.9;
+const BODY_Y = 1.9;
+// Separate scales so the engine roof can be brought in line with the carriages
+const ENGINE_SCALE = 0.62;   // slightly smaller than CAR_SCALE → matching roof height
+const CAR_SCALE    = 0.72;
+const ENGINE_LEN   = 8.9 * ENGINE_SCALE / 0.72;   // ≈ 7.67 world units
 const CARRIAGE_LEN = 15.0;
-const COUPLE = 1.0;     // coupling gap between adjacent car ends
+const COUPLE = 0.45;    // tighter coupling gap between adjacent car ends
 
 export class Train {
   constructor(scene) {
@@ -141,7 +142,7 @@ function makeLoco() {
   preloadModels().then(() => {
     const loco = getModel('engine');
     if (!loco) return;
-    normalize(loco, { scale: TRAIN_SCALE, ground: true, align: 'z' });
+    normalize(loco, { scale: ENGINE_SCALE, ground: true, align: 'z' });
     loco.position.y -= BODY_Y;
     applyTrainMaterials(loco);
     g.add(loco);
@@ -154,10 +155,13 @@ function makeCarriage() {
   preloadModels().then(() => {
     const car = getModel('carriage');
     if (!car) return;
-    normalize(car, { scale: TRAIN_SCALE, ground: true, align: 'z' });
+    normalize(car, { scale: CAR_SCALE, ground: true, align: 'z' });
     car.position.y -= BODY_Y;
     applyCarriageMaterials(car);
+    const bb = new THREE.Box3().setFromObject(car);
+    const sz = new THREE.Vector3(); bb.getSize(sz);
     g.add(car);
+    decorateCarriage(g, sz.x, sz.y, sz.z);
   }).catch((e) => console.warn('[train] carriage load failed:', e.message));
   return g;
 }
@@ -205,6 +209,59 @@ function applyTrainMaterials(root) {
     });
     o.material = Array.isArray(o.material) ? mats : mats[0];
   });
+}
+
+// ---- carriage decoration: yellow handrails, number plates, hazard ends ------
+// Overlaid on the carriage group (g) AFTER the GLB loads; positions are in
+// group-local space where y=0 = BODY_Y above rail = carriage centre height.
+function decorateCarriage(g, W, H, L) {
+  const m = mats();
+  const yBot = -BODY_Y + 0.08;       // just above rail level in group-local space
+  const yMid = -BODY_Y + H * 0.45;
+
+  // Yellow footplate strip along the bottom edge
+  const foot = new THREE.Mesh(new THREE.BoxGeometry(W + 0.32, 0.12, L + 0.1), m.yellow);
+  foot.position.set(0, yBot + 0.06, 0); g.add(foot);
+
+  // Vertical grab rails at door positions on both sides
+  for (const sx of [-1, 1]) {
+    for (const ez of [-(L / 2 - 0.9), L / 2 - 0.9]) {
+      const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, H * 0.52, 8), m.yellow);
+      rail.position.set(sx * (W / 2 + 0.07), yBot + H * 0.28, ez); g.add(rail);
+    }
+  }
+
+  // Number / car-id plate on each side (random BR-style number)
+  const carNum = (1000 + Math.floor(Math.random() * 8999)).toString();
+  g.add(numberPlate(carNum, -(W / 2 + 0.02), yMid, 0, -Math.PI / 2));
+  g.add(numberPlate(carNum,   W / 2 + 0.02,  yMid, 0,  Math.PI / 2));
+
+  // Yellow-black hazard chevron on both end faces (bottom quarter)
+  const haz = hazardMaterial();
+  for (const [ez, ry] of [[ L / 2 + 0.02, 0], [-(L / 2 + 0.02), Math.PI]]) {
+    const panel = new THREE.Mesh(new THREE.PlaneGeometry(W * 0.88, 0.44), haz);
+    panel.position.set(0, yBot + 0.28, ez); panel.rotation.y = ry; g.add(panel);
+  }
+}
+
+let _hazMat;
+function hazardMaterial() {
+  if (_hazMat) return _hazMat;
+  const cw = 256, ch = 72;
+  const c = document.createElement('canvas'); c.width = cw; c.height = ch;
+  const g = c.getContext('2d');
+  g.fillStyle = '#F4C430'; g.fillRect(0, 0, cw, ch);
+  g.fillStyle = '#111';
+  const sw = 20;
+  for (let x = -ch; x < cw + ch; x += sw * 2) {
+    g.beginPath();
+    g.moveTo(x, 0); g.lineTo(x + sw, 0);
+    g.lineTo(x + sw + ch, ch); g.lineTo(x + ch, ch);
+    g.closePath(); g.fill();
+  }
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+  _hazMat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.7, metalness: 0.1, side: THREE.DoubleSide });
+  return _hazMat;
 }
 
 // ---- (legacy procedural loco — kept for reference / fallback) ---------------

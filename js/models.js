@@ -13,37 +13,46 @@ import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
 const BASE = 'assets/models/opt/';
 const FILES = {
-  engine: 'engine.glb',         // detailed textured diesel (the locomotive)
-  carriage: 'carriage.glb',     // heritage clerestory coach (untextured)
+  engine: 'engine.glb',
+  carriage: 'carriage.glb',
   finaleTree: 'finale-tree.glb',
-  newspaper: 'newspaper.glb',         // aged folded newspaper — intro hero fly-in
-  newspaperSheet: 'newspaper-sheet.glb', // flat page — scattered on the platform
+  newspaper: 'newspaper.glb',
+  newspaperSheet: 'newspaper-sheet.glb',
   tree1: 'tree1.glb',
 };
 
-const draco = new DRACOLoader().setDecoderPath('https://unpkg.com/three@0.160.0/examples/jsm/libs/draco/');
-const loader = new GLTFLoader().setDRACOLoader(draco);
+// Unoptimised (non-Draco) props loaded with a plain GLTFLoader
+const BASE_RAW = 'assets/models/';
+const FILES_RAW = {
+  lamp:  'low-poly_lamp_post.glb',
+  bench: 'Platform_bench.glb',
+};
 
-const _cache = {};       // key -> THREE.Group (the loaded scene)
+const draco = new DRACOLoader().setDecoderPath('https://unpkg.com/three@0.160.0/examples/jsm/libs/draco/');
+const loader    = new GLTFLoader().setDRACOLoader(draco);
+const loaderRaw = new GLTFLoader();   // no Draco — for raw assets/models/ files
+
+const _cache = {};
 let _promise = null;
 
-function loadOne(key) {
+function loadOne(key, ld, url) {
   return new Promise((resolve, reject) => {
-    loader.load(BASE + FILES[key],
+    ld.load(url,
       (gltf) => { _cache[key] = gltf.scene; resolve(gltf.scene); },
       undefined,
       (err) => reject(new Error(`load ${key}: ${err?.message || err}`)));
   });
 }
 
-// Preload everything. onProgress(loaded, total) fires per-model. Resolves with
-// the cache. Rejects on the first failure (caller decides how to degrade).
 export function preloadModels(onProgress) {
   if (_promise) return _promise;
-  const keys = Object.keys(FILES);
+  const jobs = [
+    ...Object.entries(FILES).map(([k, f]) => [k, loader,    BASE     + f]),
+    ...Object.entries(FILES_RAW).map(([k, f]) => [k, loaderRaw, BASE_RAW + f]),
+  ];
   let done = 0;
-  _promise = Promise.all(keys.map((k) =>
-    loadOne(k).then((s) => { done++; onProgress && onProgress(done, keys.length); return s; })
+  _promise = Promise.all(jobs.map(([k, ld, url]) =>
+    loadOne(k, ld, url).then((s) => { done++; onProgress && onProgress(done, jobs.length); return s; })
   )).then(() => _cache);
   return _promise;
 }

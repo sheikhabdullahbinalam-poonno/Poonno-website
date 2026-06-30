@@ -561,47 +561,49 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
   }
   box(4.4, 0.4, 0.12, timber, shD - 1.45, deckTop + 2.3, shZ + shW / 2 + 0.3); // valance board
 
-  // bench against the building
-  box(1.8, 0.12, 0.5, timber, bFront - 1.0, deckTop + 0.55, 4.5);
-  box(1.8, 0.5, 0.1, timber, bFront - 0.78, deckTop + 0.8, 4.7);
+  // bench against the building — GLB prop, async loaded
+  preloadModels().then(() => {
+    const bm = getModel('bench');
+    if (!bm) return;
+    normalize(bm, { length: 2.0, ground: true });
+    bm.traverse((o) => { if (o.isMesh) { o.material = timber; o.material.needsUpdate = true; } });
+    bm.position.set(X(bFront - 0.85), deckTop, z + 4.5);
+    bm.rotation.y = faceTrack + Math.PI;   // back to building wall
+    add(bm);
+  });
 
-  // ---- ornate wrought-iron gas lamp (ref photo): stepped base, fluted post,
-  // glass-paned lantern with iron frame, peaked cap + finial. Dim warm glass. ----
+  // ---- low-poly lamp post GLB — async loaded, lights added immediately ----
   const addLamp = (lx, lz) => {
-    const y0 = deckTop;
-    const m = (geo, y) => { const e = new THREE.Mesh(geo, iron); e.position.set(lx, y0 + y, z + lz); add(e); return e; };
-    m(new THREE.CylinderGeometry(0.24, 0.32, 0.4, 12), 0.2);            // base step 1
-    m(new THREE.CylinderGeometry(0.16, 0.24, 0.3, 12), 0.55);          // base step 2
-    m(new THREE.CylinderGeometry(0.055, 0.09, 3.0, 12), 2.1);         // fluted post
-    m(new THREE.CylinderGeometry(0.12, 0.12, 0.1, 12), 2.0);          // mid collar
-    const ly = 3.7;
-    m(new THREE.BoxGeometry(0.5, 0.08, 0.5), ly - 0.34);              // lantern floor
-    // per-lamp glass material so each lantern flickers independently (flame)
-    const glassMat = new THREE.MeshStandardMaterial({ color: 0x2a1d0c, emissive: 0xffb45a, emissiveIntensity: 0.5, roughness: 0.5, transparent: true, opacity: 0.9 });
-    const glass = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.58, 0.4), glassMat);
-    glass.position.set(lx, y0 + ly, z + lz); add(glass);
-    for (const ex of [-0.21, 0.21]) for (const ez of [-0.21, 0.21]) {  // iron frame corners
-      const e = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.6, 0.04), iron);
-      e.position.set(lx + ex, y0 + ly, z + lz + ez); add(e);
-    }
-    const roof = new THREE.Mesh(new THREE.ConeGeometry(0.4, 0.32, 4), iron);
-    roof.position.set(lx, y0 + ly + 0.45, z + lz); roof.rotation.y = Math.PI / 4; add(roof);
-    m(new THREE.SphereGeometry(0.07, 8, 8), ly + 0.66);               // finial ball
-    m(new THREE.ConeGeometry(0.03, 0.18, 6), ly + 0.82);             // finial spike
-    // a little soft warm-YELLOW glow around the lantern (additive halo, kept small)
+    const LY = 4.2;         // lantern height above deck surface (matches GLB scale)
+    const lampGroup = new THREE.Group();
+    lampGroup.position.set(lx, deckTop, z + lz);
+    add(lampGroup);
+
+    preloadModels().then(() => {
+      const lm = getModel('lamp');
+      if (!lm) return;
+      normalize(lm, { height: LY, ground: true });
+      lm.traverse((o) => { if (o.isMesh) { o.material = iron; o.castShadow = false; } });
+      lampGroup.add(lm);
+    });
+
+    // Warm glow sprite + point light — independent of async model, flicker-ready
     const glow = new THREE.Sprite(new THREE.SpriteMaterial({
       map: lampGlowTex(), color: 0xffc878, transparent: true, opacity: 0.5,
       depthWrite: false, blending: THREE.AdditiveBlending, fog: false,
     }));
-    glow.position.set(lx, y0 + ly, z + lz); glow.scale.set(1.6, 1.6, 1); add(glow);
+    glow.position.set(0, LY, 0); glow.scale.set(1.6, 1.6, 1);
+    lampGroup.add(glow);
+
     const L = new THREE.PointLight(0xffb45a, 1.8, 12, 2);
-    L.position.set(lx, y0 + ly, z + lz); add(L);
-    // soft warm light POOL on the deck under the lamp (breathes with the flicker)
+    L.position.set(0, LY, 0); lampGroup.add(L);
+
     const pool = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 3.6),
       new THREE.MeshBasicMaterial({ map: lampGlowTex(), color: 0xffb35a, transparent: true, opacity: 0.26, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
-    pool.rotation.x = -Math.PI / 2; pool.position.set(lx, y0 + 0.07, z + lz); add(pool);
-    // register for the gentle flame flicker — ALTERNATING: each successive lamp is a
-    // half-cycle out of phase, so neighbours breathe in opposition (one up, one down).
+    pool.rotation.x = -Math.PI / 2; pool.position.set(0, 0.07, 0);
+    lampGroup.add(pool);
+
+    const glassMat = new THREE.MeshStandardMaterial({ color: 0x2a1d0c, emissive: 0xffb45a, emissiveIntensity: 0.5, roughness: 0.5, transparent: true, opacity: 0.9 });
     const phase = (STATION_LAMPS.length % 2) * Math.PI + Math.random() * 0.5;
     STATION_LAMPS.push({ mat: glassMat, light: L, glow, pool, eBase: 0.5, lBase: 1.8, gBase: 0.5, pBase: 0.26, phase });
   };
@@ -729,11 +731,11 @@ function addLandmarks(scene) {
     const post = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 4.2, 8), postMat);
     post.position.set(sx, 2.9, pz); scene.add(post);
   }
-  const bulbMat = new THREE.MeshStandardMaterial({ color: PALETTE.firefly, emissive: PALETTE.firefly, emissiveIntensity: 2.4 });
+  const bulbMat = new THREE.MeshStandardMaterial({ color: PALETTE.firefly, emissive: PALETTE.firefly, emissiveIntensity: 0.9 });
   for (const pz of [-8, 0, 8]) {
     const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 12), bulbMat);
     bulb.position.set(6, 4.5, pz); scene.add(bulb);
-    const lamp = new THREE.PointLight(0xFFCF8C, 26, 26, 2);
+    const lamp = new THREE.PointLight(0xFFCF8C, 7, 20, 2);
     lamp.position.set(5.5, 4.3, pz); scene.add(lamp);
   }
 
