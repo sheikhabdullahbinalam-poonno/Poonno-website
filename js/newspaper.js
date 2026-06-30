@@ -47,7 +47,6 @@ export class Newspaper {
         normalize(np, { length: 1.4, align: 'none', ground: false });
         const sheet = newsprintTex();   // aged, grungy newsprint (replaces baked print)
         const bump = newsprintBumpTex(1024, 1320);
-        const torn = newsprintAlphaTex(1024, 1320);
         np.traverse((o) => {
           if (!o.isMesh) return;
           o.frustumCulled = false;
@@ -56,7 +55,8 @@ export class Newspaper {
           o.material.roughness = 0.97; o.material.metalness = 0;
           o.material.map = sheet;
           o.material.bumpMap = bump; o.material.bumpScale = 0.5;   // creases/wrinkles — not flat
-          o.material.alphaMap = torn; o.material.transparent = true; o.material.alphaTest = 0.45; // torn edges
+          // (no alphaMap — the folded GLB's UV islands made real tearing cut the middle;
+          //  the worn/torn look is painted into the colour map instead)
           // unlit at rest (#1); a gentle self-light ramps in ONLY as it sweeps up
           // to face the viewer, so the fill reads instead of going black.
           o.material.emissive = new THREE.Color(0xffffff);
@@ -171,10 +171,13 @@ function newsprintTex() {
   const g = c.getContext('2d');
   const ink = '#241a0f', M = 60;
 
-  // aged paper + uneven staining (yellowed, blotchy)
-  g.fillStyle = '#c7b58c'; g.fillRect(0, 0, w, h);
+  // heavily-yellowed aged paper + uneven staining
+  g.fillStyle = '#cdb162'; g.fillRect(0, 0, w, h);
+  const yt = g.createLinearGradient(0, 0, w, h);          // amber wash for an old, deep-yellow tone
+  yt.addColorStop(0, 'rgba(180,140,50,0.18)'); yt.addColorStop(1, 'rgba(150,110,40,0.22)');
+  g.fillStyle = yt; g.fillRect(0, 0, w, h);
   const grd = g.createLinearGradient(0, 0, 0, h);
-  grd.addColorStop(0, 'rgba(120,92,48,0.16)'); grd.addColorStop(0.5, 'rgba(0,0,0,0)'); grd.addColorStop(1, 'rgba(100,74,38,0.22)');
+  grd.addColorStop(0, 'rgba(110,82,38,0.18)'); grd.addColorStop(0.5, 'rgba(0,0,0,0)'); grd.addColorStop(1, 'rgba(92,66,30,0.24)');
   g.fillStyle = grd; g.fillRect(0, 0, w, h);
   for (let i = 0; i < 10; i++) { g.fillStyle = `rgba(126,92,46,0.06)`; g.beginPath(); g.arc(Math.random() * w, Math.random() * h, 60 + Math.random() * 140, 0, 6.283); g.fill(); }
 
@@ -240,11 +243,24 @@ function newsprintTex() {
   g.beginPath(); g.moveTo(w * 0.5, 0); g.bezierCurveTo(w * 0.5 - 7, h * 0.32, w * 0.5 + 7, h * 0.62, w * 0.5 - 4, h); g.stroke();
   g.strokeStyle = 'rgba(66,46,24,0.08)'; g.lineWidth = 1.4;
   for (let i = 0; i < 16; i++) { g.beginPath(); const y = Math.random() * h; g.moveTo(0, y); g.lineTo(w, y + (Math.random() - 0.5) * 46); g.stroke(); }
-  // handled edge darkening (vignette) + ragged dark torn fringe
+  // coffee-ring stains — a darker ring with a faint flooded centre
+  const coffeeRing = (cx, cy, rad) => {
+    g.save();
+    const rg = g.createRadialGradient(cx, cy, rad * 0.62, cx, cy, rad);
+    rg.addColorStop(0, 'rgba(96,58,24,0.0)'); rg.addColorStop(0.72, 'rgba(96,58,24,0.07)');
+    rg.addColorStop(0.9, 'rgba(70,40,16,0.36)'); rg.addColorStop(1, 'rgba(70,40,16,0)');
+    g.fillStyle = rg; g.beginPath(); g.arc(cx, cy, rad, 0, 6.283); g.fill();
+    g.strokeStyle = 'rgba(64,36,14,0.42)'; g.lineWidth = 2.5 + Math.random() * 2;        // the crisp ring edge
+    g.beginPath(); for (let a = 0; a <= 6.3; a += 0.18) { const rr = rad * (0.9 + Math.sin(a * 5) * 0.012); const x = cx + Math.cos(a) * rr, y = cy + Math.sin(a) * rr; a === 0 ? g.moveTo(x, y) : g.lineTo(x, y); } g.stroke();
+    g.restore();
+  };
+  coffeeRing(w * 0.72, h * 0.2, 78);
+  coffeeRing(w * 0.2, h * 0.82, 58);
+  // handled edge darkening (vignette) + soft worn-edge fringe
   const vg = g.createRadialGradient(w / 2, h / 2, h * 0.3, w / 2, h / 2, h * 0.64);
   vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(54,38,20,0.4)');
   g.fillStyle = vg; g.fillRect(0, 0, w, h);
-  paintTornFringe(g, w, h);
+  paintWornEdge(g, w, h);
 
   _newsprint = new THREE.CanvasTexture(c);
   _newsprint.colorSpace = THREE.SRGBColorSpace;
@@ -253,21 +269,32 @@ function newsprintTex() {
   return _newsprint;
 }
 
-// a ragged, darkened torn fringe painted INTO the colour map (so even where the
-// alpha cut is subtle, the very edge reads as worn/torn brown paper)
-function paintTornFringe(g, w, h) {
+// A SOFT worn edge: the outer band of the sheet darkens and frays gently (fine
+// short fibres), so the rim reads as old, handled, lightly-torn paper — without the
+// hard zigzag silhouette cut that looked unreal on the folded model.
+function paintWornEdge(g, w, h) {
   g.save();
-  g.strokeStyle = 'rgba(48,33,16,0.6)'; g.lineWidth = 6; g.lineJoin = 'round';
-  g.beginPath();
-  const seg = 54, inset = 10;
-  const j = () => (Math.random() < 0.18 ? 18 + Math.random() * 32 : Math.random() * 14);
-  const pt = (x, y) => g.lineTo(x, y);
-  g.moveTo(inset, inset);
-  for (let i = 0; i <= seg; i++) pt((i / seg) * (w - 2 * inset) + inset, inset + j());
-  for (let i = 0; i <= seg; i++) pt(w - inset - j(), (i / seg) * (h - 2 * inset) + inset);
-  for (let i = seg; i >= 0; i--) pt((i / seg) * (w - 2 * inset) + inset, h - inset - j());
-  for (let i = seg; i >= 0; i--) pt(inset + j(), (i / seg) * (h - 2 * inset) + inset);
-  g.closePath(); g.stroke();
+  const band = 26;
+  for (const [x0, y0, x1, y1] of [[0, 0, w, 0], [0, h, w, h], [0, 0, 0, h], [w, 0, w, h]]) {
+    const horiz = y0 === y1;
+    const lg = horiz
+      ? g.createLinearGradient(0, y0, 0, y0 === 0 ? band : h - band)
+      : g.createLinearGradient(x0, 0, x0 === 0 ? band : w - band, 0);
+    lg.addColorStop(0, 'rgba(58,40,18,0.5)'); lg.addColorStop(1, 'rgba(58,40,18,0)');
+    g.fillStyle = lg;
+    if (horiz) g.fillRect(0, y0 === 0 ? 0 : h - band, w, band);
+    else g.fillRect(x0 === 0 ? 0 : w - band, 0, band, h);
+  }
+  // fine frayed fibres poking in from each edge (short, soft — not a zigzag)
+  g.strokeStyle = 'rgba(60,42,20,0.4)'; g.lineWidth = 1;
+  for (let i = 0; i < 260; i++) {
+    const edge = i % 4; let x, y, dx = 0, dy = 0; const len = 2 + Math.random() * 8;
+    if (edge === 0) { x = Math.random() * w; y = 1; dy = len; }
+    else if (edge === 1) { x = Math.random() * w; y = h - 1; dy = -len; }
+    else if (edge === 2) { x = 1; y = Math.random() * h; dx = len; }
+    else { x = w - 1; y = Math.random() * h; dx = -len; }
+    g.beginPath(); g.moveTo(x, y); g.lineTo(x + dx + (Math.random() - 0.5) * 3, y + dy + (Math.random() - 0.5) * 3); g.stroke();
+  }
   g.restore();
 }
 
@@ -293,29 +320,6 @@ function newsprintBumpTex(w, h) {
     g.lineWidth = 1; g.beginPath(); const y = Math.random() * h; g.moveTo(0, y); g.lineTo(w, y + (Math.random() - 0.5) * 50); g.stroke();
   }
   _newsBump = new THREE.CanvasTexture(c); _newsBump.flipY = false; return _newsBump;
-}
-
-// TORN-EDGE alpha map: a ragged opaque region, transparent outside — so the paper's
-// silhouette is actually torn at the edges (kept a small inset so it never holes the
-// middle even if the GLB's UVs are slightly unusual).
-let _newsAlpha;
-function newsprintAlphaTex(w, h) {
-  if (_newsAlpha) return _newsAlpha;
-  const c = document.createElement('canvas'); c.width = w; c.height = h;
-  const g = c.getContext('2d');
-  g.fillStyle = '#000'; g.fillRect(0, 0, w, h);                    // transparent outside
-  g.fillStyle = '#fff'; g.beginPath();
-  const seg = 54, inset = 7;
-  // chunkier, deeper tears: mostly shallow with the occasional deep notch
-  const j = () => (Math.random() < 0.18 ? 18 + Math.random() * 34 : Math.random() * 16);
-  const ln = (x, y) => g.lineTo(x, y);
-  g.moveTo(inset, inset);
-  for (let i = 0; i <= seg; i++) ln((i / seg) * (w - 2 * inset) + inset, inset + j());
-  for (let i = 0; i <= seg; i++) ln(w - inset - j(), (i / seg) * (h - 2 * inset) + inset);
-  for (let i = seg; i >= 0; i--) ln((i / seg) * (w - 2 * inset) + inset, h - inset - j());
-  for (let i = seg; i >= 0; i--) ln(inset + j(), (i / seg) * (h - 2 * inset) + inset);
-  g.closePath(); g.fill();
-  _newsAlpha = new THREE.CanvasTexture(c); _newsAlpha.flipY = false; return _newsAlpha;
 }
 
 // Fine, dense justified "type" (thin, tightly-leaded lines with paragraph breaks
