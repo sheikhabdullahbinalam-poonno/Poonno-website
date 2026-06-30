@@ -265,6 +265,7 @@ function newsprintTex() {
   _newsprint = new THREE.CanvasTexture(c);
   _newsprint.colorSpace = THREE.SRGBColorSpace;
   _newsprint.flipY = false;          // match the GLB's UV convention
+  _newsprint.wrapS = THREE.RepeatWrapping; _newsprint.repeat.x = -1; _newsprint.offset.x = 1; // flip horizontally
   _newsprint.anisotropy = 8;
   return _newsprint;
 }
@@ -319,7 +320,9 @@ function newsprintBumpTex(w, h) {
     g.strokeStyle = `rgba(${Math.random() < 0.5 ? 40 : 215},${Math.random() < 0.5 ? 40 : 215},${Math.random() < 0.5 ? 40 : 215},0.18)`;
     g.lineWidth = 1; g.beginPath(); const y = Math.random() * h; g.moveTo(0, y); g.lineTo(w, y + (Math.random() - 0.5) * 50); g.stroke();
   }
-  _newsBump = new THREE.CanvasTexture(c); _newsBump.flipY = false; return _newsBump;
+  _newsBump = new THREE.CanvasTexture(c); _newsBump.flipY = false;
+  _newsBump.wrapS = THREE.RepeatWrapping; _newsBump.repeat.x = -1; _newsBump.offset.x = 1; // match the colour map flip
+  return _newsBump;
 }
 
 // Fine, dense justified "type" (thin, tightly-leaded lines with paragraph breaks
