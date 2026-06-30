@@ -436,13 +436,13 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
   // Iron: the train's rusty weatheredMetal so the station shares its patina.
   const stone   = stoneMaterial({ stone: new THREE.Color(0x3d362b), mortar: new THREE.Color(0x12100b), scale: 1.5, bump: 1.1 });
   const brickQ  = stoneMaterial({ stone: new THREE.Color(0x472f22), mortar: new THREE.Color(0x110b06), scale: 2.6, bump: 1.2 }); // quoins/chimney brick
-  const slate   = slateMaterial({ base: new THREE.Color(0x363d46), moss: new THREE.Color(0x29371f), scale: 1.5, bump: 0.8, rim: 0.4 });
+  const slate   = slateMaterial({ base: new THREE.Color(0x363d46), moss: new THREE.Color(0x29371f), scale: 1.5, bump: 0.8, rim: 0.14, rimPow: 4.2 });
   const timber  = woodMaterial({ light: new THREE.Color(0x322212), dark: new THREE.Color(0x120a04), scale: 1.4 });
   const deckWood = woodMaterial({ light: new THREE.Color(0x392717), dark: new THREE.Color(0x180f07), scale: 0.7 });
   const iron    = weatheredMetal({
     base: new THREE.Color(0x191a18), rust: new THREE.Color(0x4f2d1a),
     yLow: 0.0, yHigh: 4.0, paintRough: 0.62, rustRough: 0.97, metalBase: 0.62, scale: 1.6, panel: 0.0, rustAmt: 0.42,
-    rim: 0.4,
+    rim: 0.12, rimPow: 4.2,
   });
   // window glass — a DIM warm interior glow (a low-lit room behind it) so the panes
   // just read, plus a cool sheen for the moonlit reflection (ref photo)
@@ -593,8 +593,10 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
     const pool = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 3.6),
       new THREE.MeshBasicMaterial({ map: lampGlowTex(), color: 0xffb35a, transparent: true, opacity: 0.26, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
     pool.rotation.x = -Math.PI / 2; pool.position.set(lx, y0 + 0.07, z + lz); add(pool);
-    // register for the gentle flame flicker
-    STATION_LAMPS.push({ mat: glassMat, light: L, glow, pool, eBase: 0.5, lBase: 1.8, gBase: 0.5, pBase: 0.26, phase: Math.random() * 6.28 });
+    // register for the gentle flame flicker — ALTERNATING: each successive lamp is a
+    // half-cycle out of phase, so neighbours breathe in opposition (one up, one down).
+    const phase = (STATION_LAMPS.length % 2) * Math.PI + Math.random() * 0.5;
+    STATION_LAMPS.push({ mat: glassMat, light: L, glow, pool, eBase: 0.5, lBase: 1.8, gBase: 0.5, pBase: 0.26, phase });
   };
   addLamp(X(nearD + 0.5), -12); addLamp(X(nearD + 0.5), 2); addLamp(X(nearD + 0.5), 15);
   // NB: no building light — the station is dark/unlit (only the platform lamps glow).
