@@ -188,3 +188,51 @@ export function stoneMaterial(opts = {}) {
   mat.customProgramCacheKey = () => 'stone_v3';
   return mat;
 }
+
+// ---------------------------------------------------------------------------
+//  slateMaterial(): object-space overlapping slate roof tiles — staggered courses
+//  with recessed grout, per-tile tone, water-stain/moss streaks, and a true bump
+//  pass so raked light catches every tile edge (the roof was reading flat).
+// ---------------------------------------------------------------------------
+export function slateMaterial(opts = {}) {
+  const {
+    base = new THREE.Color(0x3a414a), moss = new THREE.Color(0x2b3a2a),
+    rough = 0.8, scale = 1.4, bump = 0.7,
+  } = opts;
+  const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: rough, metalness: 0.1 });
+  mat.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, { uBase: { value: base }, uMoss: { value: moss }, uScale: { value: scale }, uBump: { value: bump } });
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vRLP;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvRLP = position;');
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>',
+        '#include <common>\n' + NOISE_GLSL +
+        'varying vec3 vRLP;\nuniform vec3 uBase,uMoss;\nuniform float uScale,uBump;\nfloat gSlateH;')
+      .replace('#include <color_fragment>', `#include <color_fragment>
+        vec3 lp = vRLP * uScale;
+        // tiles: wide across Z, short courses down-slope X; staggered, with grout grooves
+        vec2 uv = vec2(lp.z * 1.0, lp.x * 1.7);
+        float row = floor(uv.y); uv.x += 0.5 * mod(row, 2.0);
+        vec2 f = fract(uv); vec2 d = min(f, 1.0 - f);
+        float tile = smoothstep(0.0, 0.05, min(d.x, d.y));            // 0 grout, 1 tile face
+        float tn = h31(vec3(floor(uv.x), row, 5.0));
+        vec3 col = mix(uBase * 0.42, uBase * (0.7 + 0.55 * tn), tile); // grout darker, tiles vary
+        float wet = fbm3(vec3(lp.x * 0.6, lp.z * 0.6, 1.7));          // water-stain / moss streaks
+        col = mix(col, uMoss, 0.28 * smoothstep(0.52, 0.86, wet));
+        col *= 0.78 + 0.34 * fbm3(lp * 3.0);                          // grime mottle
+        gSlateH = tile * 0.85 + fbm3(lp * 5.0) * 0.22;                // tiles proud, grout recessed
+        diffuseColor.rgb *= col;`)
+      .replace('#include <roughnessmap_fragment>',
+        '#include <roughnessmap_fragment>\n        roughnessFactor *= 0.85 + 0.2 * fbm3(vRLP * uScale * 6.0);')
+      .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+        { vec3 Sx = dFdx(-vViewPosition), Sy = dFdy(-vViewPosition);
+          float Hx = dFdx(gSlateH), Hy = dFdy(gSlateH);
+          vec3 R1 = cross(Sy, normal), R2 = cross(normal, Sx);
+          float det = dot(Sx, R1);
+          vec3 grad = sign(det) * (Hx * R1 + Hy * R2);
+          normal = normalize(abs(det) * normal - grad * uBump); }`);
+  };
+  mat.customProgramCacheKey = () => 'slate_v1';
+  return mat;
+}

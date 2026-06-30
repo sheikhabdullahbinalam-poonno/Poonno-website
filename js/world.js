@@ -11,7 +11,7 @@ import * as THREE from 'three';
 import { PALETTE, FOG, SKY } from './config.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { preloadModels, getModel, normalize } from './models.js';
-import { weatheredMetal, woodMaterial, stoneMaterial } from './materials.js';
+import { weatheredMetal, woodMaterial, stoneMaterial, slateMaterial } from './materials.js';
 
 const RAIL_MATERIAL = new THREE.MeshStandardMaterial({ color: 0x8A929A, metalness: 0.85, roughness: 0.38, envMapIntensity: 1.0 });
 const SLEEPER_MATERIAL = new THREE.MeshStandardMaterial({ color: 0x3A2A1E, roughness: 0.95, metalness: 0.05 });
@@ -343,20 +343,41 @@ function signTex(name) {
   g.fillStyle = eg; g.fillRect(0, 0, w, h);
   // recessed cast border
   g.strokeStyle = 'rgba(40,38,33,0.55)'; g.lineWidth = 6; g.strokeRect(17, 17, w - 34, h - 34);
-  g.strokeStyle = 'rgba(212,210,202,0.22)'; g.lineWidth = 1.5; g.strokeRect(14, 14, w - 28, h - 28);
+  g.strokeStyle = 'rgba(212,210,202,0.2)'; g.lineWidth = 1.5; g.strokeRect(14, 14, w - 28, h - 28);
+  // pre-roll chipped-edge notches (broken concrete) — centres shared by both maps
+  const chips = [];
+  for (let i = 0; i < 30; i++) {
+    const e = i % 4; let x = Math.random() * w, y = Math.random() * h;
+    if (e === 0) y = Math.random() * 8; else if (e === 2) y = h - Math.random() * 8;
+    else if (e === 1) x = w - Math.random() * 8; else x = Math.random() * 8;
+    chips.push({ x, y, r: 3 + Math.random() * 9 });
+  }
+  const drawChips = (ctx, col) => {
+    ctx.fillStyle = col;
+    for (const ch of chips) {
+      ctx.beginPath(); ctx.moveTo(ch.x, ch.y);
+      for (let k = 0; k < 5; k++) ctx.lineTo(ch.x + (Math.random() - 0.5) * ch.r * 2, ch.y + (Math.random() - 0.5) * ch.r * 2);
+      ctx.closePath(); ctx.fill();
+    }
+  };
   // engraved station name
   g.textAlign = 'center'; g.textBaseline = 'middle';
   let fs = 56; g.font = ff(fs);
   while (g.measureText(name).width > w - 80 && fs > 16) { fs -= 2; g.font = ff(fs); }
-  g.fillStyle = 'rgba(224,222,214,0.42)'; g.fillText(name, w / 2 - 1.5, h / 2 - 1.5); // cast bevel highlight
-  g.fillStyle = '#33312b'; g.fillText(name, w / 2, h / 2);                            // engraved letters
+  g.fillStyle = 'rgba(224,222,214,0.4)'; g.fillText(name, w / 2 - 1.5, h / 2 - 1.5);   // cast bevel highlight
+  g.fillStyle = '#33312b'; g.fillText(name, w / 2, h / 2);                             // engraved letters
+  g.strokeStyle = 'rgba(150,148,140,0.28)'; g.lineWidth = 1;                           // worn scratches over the text
+  for (let i = 0; i < 8; i++) { const yy = h / 2 + (Math.random() - 0.5) * 56; g.beginPath(); g.moveTo(110 + Math.random() * 120, yy); g.lineTo(360 + Math.random() * 150, yy + (Math.random() - 0.5) * 8); g.stroke(); }
+  drawChips(g, 'rgba(52,50,44,0.7)');                                                  // dark chip notches
   const map = new THREE.CanvasTexture(c); map.colorSpace = THREE.SRGBColorSpace; map.anisotropy = 8;
-  // matching depth map: mid board, recessed (dark) border + letters in the same place
+  // matching DEPTH map: mid board + surface pitting, recessed border/letters/chips
   const b = mk(), gb = b.getContext('2d');
   gb.fillStyle = '#b2b2b2'; gb.fillRect(0, 0, w, h);
-  gb.strokeStyle = '#3c3c3c'; gb.lineWidth = 6; gb.strokeRect(17, 17, w - 34, h - 34);
+  for (let i = 0; i < 1700; i++) { const v = 150 + Math.floor(Math.random() * 95); gb.fillStyle = `rgb(${v},${v},${v})`; gb.fillRect(Math.random() * w, Math.random() * h, 1.5, 1.5); } // pitting
+  gb.strokeStyle = '#3a3a3a'; gb.lineWidth = 6; gb.strokeRect(17, 17, w - 34, h - 34);
   gb.textAlign = 'center'; gb.textBaseline = 'middle'; gb.font = ff(fs);
-  gb.fillStyle = '#000'; gb.fillText(name, w / 2, h / 2);
+  gb.fillStyle = '#0e0e0e'; gb.fillText(name, w / 2, h / 2);
+  drawChips(gb, '#1c1c1c');
   const bump = new THREE.CanvasTexture(b);
   return { map, bump };
 }
@@ -367,9 +388,9 @@ function lampGlowTex() {
   const c = document.createElement('canvas'); c.width = c.height = 128;
   const g = c.getContext('2d');
   const grd = g.createRadialGradient(64, 64, 2, 64, 64, 64);
-  grd.addColorStop(0, 'rgba(255,212,150,0.85)');
-  grd.addColorStop(0.32, 'rgba(255,168,86,0.38)');
-  grd.addColorStop(1, 'rgba(255,150,70,0)');
+  grd.addColorStop(0, 'rgba(255,228,170,0.9)');     // warm yellow core
+  grd.addColorStop(0.34, 'rgba(255,202,120,0.34)'); // amber, NOT red
+  grd.addColorStop(1, 'rgba(255,194,110,0)');
   g.fillStyle = grd; g.fillRect(0, 0, 128, 128);
   _lampGlow = new THREE.CanvasTexture(c); _lampGlow.colorSpace = THREE.SRGBColorSpace; return _lampGlow;
 }
@@ -385,16 +406,16 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
   // Iron: the train's rusty weatheredMetal so the station shares its patina.
   const stone   = stoneMaterial({ stone: new THREE.Color(0x3d362b), mortar: new THREE.Color(0x12100b), scale: 1.5, bump: 1.1 });
   const brickQ  = stoneMaterial({ stone: new THREE.Color(0x472f22), mortar: new THREE.Color(0x110b06), scale: 2.6, bump: 1.2 }); // quoins/chimney brick
-  const slate   = new THREE.MeshStandardMaterial({ map: slateTex(), color: 0x3f444c, roughness: 0.84, metalness: 0.08 });
+  const slate   = slateMaterial({ base: new THREE.Color(0x363d46), moss: new THREE.Color(0x29371f), scale: 1.5, bump: 0.8 });
   const timber  = woodMaterial({ light: new THREE.Color(0x322212), dark: new THREE.Color(0x120a04), scale: 1.4 });
   const deckWood = woodMaterial({ light: new THREE.Color(0x392717), dark: new THREE.Color(0x180f07), scale: 0.7 });
   const iron    = weatheredMetal({
     base: new THREE.Color(0x191a18), rust: new THREE.Color(0x4f2d1a),
     yLow: 0.0, yHigh: 4.0, paintRough: 0.62, rustRough: 0.97, metalBase: 0.62, scale: 1.6, panel: 0.0, rustAmt: 0.42,
   });
-  // dark, unlit night glass (no interior light) — a faint cool emissive reads as a
-  // moon-glint so the panes catch the eye at a glance
-  const winGlow = new THREE.MeshStandardMaterial({ color: 0x0a0d11, emissive: 0x24323f, emissiveIntensity: 0.28, roughness: 0.22, metalness: 0.5, envMapIntensity: 0.9 });
+  // window glass — a faint WARM interior glow (like a lit room behind it) so the
+  // panes read at a glance, plus a cool sheen for the moonlit reflection (ref photo)
+  const winGlow = new THREE.MeshStandardMaterial({ color: 0x140d05, emissive: 0xffb260, emissiveIntensity: 0.7, roughness: 0.22, metalness: 0.45, envMapIntensity: 0.9 });
 
   const box = (w, h, dp, mat, d, y, dz, ry = 0) => {
     const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, dp), mat);
@@ -508,7 +529,7 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
 
   // ---- ornate wrought-iron gas lamp (ref photo): stepped base, fluted post,
   // glass-paned lantern with iron frame, peaked cap + finial. Dim warm glass. ----
-  const glassMat = new THREE.MeshStandardMaterial({ color: 0x2a1d0c, emissive: 0xff9f48, emissiveIntensity: 0.42, roughness: 0.5, transparent: true, opacity: 0.9 });
+  const glassMat = new THREE.MeshStandardMaterial({ color: 0x2a1d0c, emissive: 0xffb45a, emissiveIntensity: 0.5, roughness: 0.5, transparent: true, opacity: 0.9 });
   const addLamp = (lx, lz) => {
     const y0 = deckTop;
     const m = (geo, y) => { const e = new THREE.Mesh(geo, iron); e.position.set(lx, y0 + y, z + lz); add(e); return e; };
@@ -528,13 +549,13 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
     roof.position.set(lx, y0 + ly + 0.45, z + lz); roof.rotation.y = Math.PI / 4; add(roof);
     m(new THREE.SphereGeometry(0.07, 8, 8), ly + 0.66);               // finial ball
     m(new THREE.ConeGeometry(0.03, 0.18, 6), ly + 0.82);             // finial spike
-    // a little soft warm glow around the lantern (additive halo)
+    // a little soft warm-YELLOW glow around the lantern (additive halo, kept small)
     const glow = new THREE.Sprite(new THREE.SpriteMaterial({
-      map: lampGlowTex(), color: 0xffa552, transparent: true, opacity: 0.55,
+      map: lampGlowTex(), color: 0xffc878, transparent: true, opacity: 0.5,
       depthWrite: false, blending: THREE.AdditiveBlending, fog: false,
     }));
-    glow.position.set(lx, y0 + ly, z + lz); glow.scale.set(2.1, 2.1, 1); add(glow);
-    const L = new THREE.PointLight(0xff9f4a, 1.7, 12, 2);
+    glow.position.set(lx, y0 + ly, z + lz); glow.scale.set(1.6, 1.6, 1); add(glow);
+    const L = new THREE.PointLight(0xffb45a, 1.8, 12, 2);
     L.position.set(lx, y0 + ly, z + lz); add(L);
   };
   addLamp(X(nearD + 0.5), -12); addLamp(X(nearD + 0.5), 2); addLamp(X(nearD + 0.5), 15);
@@ -545,7 +566,7 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
   {
     const { map, bump } = signTex(name);
     const sw = 4.8, sh = 1.3, signZ = z + PLEN / 2 - 2.5, signCementBack = new THREE.MeshStandardMaterial({ color: 0x6d6a61, roughness: 0.95, metalness: 0 });
-    const boardMat = new THREE.MeshStandardMaterial({ map, bumpMap: bump, bumpScale: 1.0, roughness: 0.92, metalness: 0 });
+    const boardMat = new THREE.MeshStandardMaterial({ map, bumpMap: bump, bumpScale: 1.4, roughness: 0.94, metalness: 0 });
     const sign = new THREE.Group();
     // cast cement slab — boardMat (engraved face) on +Z toward the train, cement on the rest
     const board = new THREE.Mesh(new THREE.BoxGeometry(sw, sh, 0.16),
@@ -594,16 +615,37 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
   crate(bFront - 1.3, -3.6, 0.7); crate(bFront - 1.7, -3.2, 0.5); crate(shD + 1.8, -shW + 2, 0.6);
   const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.9, 12), timber);
   barrel.position.set(X(bFront - 1.0), deckTop + 0.45, z - 5.6); add(barrel);
+  // ivy creeping up a corner of the building (blends it into the world)
+  const ivyMat = new THREE.MeshStandardMaterial({ color: 0x22331c, roughness: 1, metalness: 0 });
+  for (let i = 0; i < 26; i++) {
+    const iv = new THREE.Mesh(new THREE.CircleGeometry(0.12 + Math.random() * 0.24, 5), ivyMat);
+    iv.rotation.y = faceTrack; iv.rotation.z = Math.random() * 6;
+    iv.position.set(bFace - 0.05, 0.4 + Math.random() * (bH - 0.4), 0); // placed via group offset below
+    iv.position.x = X(bFace - 0.05);
+    iv.position.z = z - bW / 2 + 0.25 + Math.random() * 1.6;
+    add(iv);
+  }
+  // grass tufts along the platform base, track side (softens the hard edge)
+  const grassMat = new THREE.MeshStandardMaterial({ color: 0x2d391f, roughness: 1, metalness: 0 });
+  for (let i = 0; i < 22; i++) {
+    const gt = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.3 + Math.random() * 0.26, 4), grassMat);
+    gt.position.set(X(nearD - 0.45 + Math.random() * 0.35), 0.18, z + (Math.random() - 0.5) * PLEN);
+    gt.rotation.set((Math.random() - 0.5) * 0.35, Math.random() * 6, (Math.random() - 0.5) * 0.35); add(gt);
+  }
 
-  // ---- ACCENT LIGHTING — exterior architectural light that shapes the building
-  // without re-lighting the interior. Cool moon-rim on the roof/upper wall, a warm
-  // uplight grazing the brick façade (so the masonry/bump relief reads), and a
-  // faint cool wash on the clock tower to make it a focal silhouette. ----
-  const rim = new THREE.PointLight(0x9fb8db, 3.4, 36, 2);            // cool sky-side roof rim
+  // ---- ACCENT LIGHTING (ref: warm-uplit stone house at dusk). Ground uplights
+  // graze up the stone façade so the masonry/bump reads, a soffit wash catches the
+  // gable, the windows glow warm on their own (emissive), and a cool moon-rim keeps
+  // the roof silhouette. Warm + localised = architectural, not a flat flood. ----
+  const warmUp = (d, y, dz, int, dist) => { const L = new THREE.PointLight(0xffb265, int, dist, 2); L.position.set(X(d), y, z + dz); add(L); };
+  warmUp(bFace - 0.55, 0.5, -2.9, 2.8, 8.5);   // façade uplight — left
+  warmUp(bFace - 0.55, 0.5, 0.6, 2.8, 8.5);    // façade uplight — door/centre
+  warmUp(bFace - 0.55, 0.5, 2.9, 2.8, 8.5);    // façade uplight — right
+  warmUp(bFace - 0.5, bH + 0.5, 0, 2.4, 8);    // soffit wash up into the gable peak
+  warmUp(tD - tW / 2 - 0.4, 1.8, tDZ, 2.2, 8); // warm graze on the clock-tower face
+  const rim = new THREE.PointLight(0x9fb8db, 3.0, 34, 2);           // cool moon-rim on the roof
   rim.position.set(X(bD + 2), bH + 12, z - bW); add(rim);
-  const graze = new THREE.PointLight(0xffb060, 2.4, 11, 2);          // warm façade uplight (grazes brick)
-  graze.position.set(X(bFace - 0.7), 0.5, z + 1.2); add(graze);
-  const towerWash = new THREE.PointLight(0xbcd2ee, 1.8, 16, 2);      // faint cool on the clock tower
+  const towerWash = new THREE.PointLight(0xbcd2ee, 1.5, 16, 2);     // faint cool on the tower
   towerWash.position.set(X(tD - 2.2), tH * 0.72, z + tDZ + 2.2); add(towerWash);
   return G;
 }
