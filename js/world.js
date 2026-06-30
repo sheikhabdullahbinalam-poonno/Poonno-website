@@ -436,7 +436,7 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
   // Iron: the train's rusty weatheredMetal so the station shares its patina.
   const stone   = stoneMaterial({ stone: new THREE.Color(0x3d362b), mortar: new THREE.Color(0x12100b), scale: 1.5, bump: 1.1 });
   const brickQ  = stoneMaterial({ stone: new THREE.Color(0x472f22), mortar: new THREE.Color(0x110b06), scale: 2.6, bump: 1.2 }); // quoins/chimney brick
-  const slate   = slateMaterial({ base: new THREE.Color(0x363d46), moss: new THREE.Color(0x29371f), scale: 1.5, bump: 0.8, rim: 0.14, rimPow: 4.2 });
+  const slate   = slateMaterial({ base: new THREE.Color(0x363d46), moss: new THREE.Color(0x29371f), scale: 1.5, bump: 0.8 }); // no moon-rim: the per-tile bump made each tile catch it (read as "lit per brick")
   const timber  = woodMaterial({ light: new THREE.Color(0x322212), dark: new THREE.Color(0x120a04), scale: 1.4 });
   const deckWood = woodMaterial({ light: new THREE.Color(0x392717), dark: new THREE.Color(0x180f07), scale: 0.7 });
   const iron    = weatheredMetal({
@@ -931,7 +931,7 @@ function junctionMarker(scene, x, z, signalColor) {
 function addTelegraph(scene) {
   // a VERY faint cool moon-rim so the dark poles/wires just catch a sliver of moonlight
   const poleMat = addMoonRim(new THREE.MeshStandardMaterial({ color: 0x1b130a, roughness: 0.95, metalness: 0.04 }), { strength: 0.22, power: 3.2 });
-  const wireMat = addMoonRim(new THREE.MeshStandardMaterial({ color: 0x0b0b0d, roughness: 0.6, metalness: 0.5 }), { strength: 0.42, power: 2.4 });
+  const wireMat = addMoonRim(new THREE.MeshStandardMaterial({ color: 0x0b0b0d, roughness: 0.6, metalness: 0.5 }), { strength: 0.2, power: 2.8 });
   const insMat = addMoonRim(new THREE.MeshStandardMaterial({ color: 0x2a2622, roughness: 0.7 }), { strength: 0.2, power: 3.2 });
   const add = (m) => { m.frustumCulled = false; scene.add(m); return m; };
   const runs = [
