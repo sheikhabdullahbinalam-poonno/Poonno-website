@@ -236,3 +236,25 @@ export function slateMaterial(opts = {}) {
   mat.customProgramCacheKey = () => 'slate_v1';
   return mat;
 }
+
+// ---------------------------------------------------------------------------
+//  addMoonRim(mat): a faint cool fresnel rim so thin/dark objects (telegraph
+//  poles + wires) catch a sliver of moonlight on their silhouette and read
+//  against the night. Adds to emissive — view-dependent, no extra lights.
+// ---------------------------------------------------------------------------
+export function addMoonRim(mat, { color = new THREE.Color(0x9fb8db), power = 2.4, strength = 0.7 } = {}) {
+  mat.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, {
+      uRimColor: { value: color }, uRimPow: { value: power }, uRimStr: { value: strength },
+    });
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', '#include <common>\nuniform vec3 uRimColor;\nuniform float uRimPow,uRimStr;')
+      .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+        {
+          float fres = pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0), uRimPow);
+          totalEmissiveRadiance += uRimColor * fres * uRimStr;   // cool moon-rim on the silhouette
+        }`);
+  };
+  mat.customProgramCacheKey = () => 'moonRim_v1';
+  return mat;
+}

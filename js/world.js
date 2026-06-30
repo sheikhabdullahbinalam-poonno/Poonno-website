@@ -11,7 +11,7 @@ import * as THREE from 'three';
 import { PALETTE, FOG, SKY } from './config.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { preloadModels, getModel, normalize } from './models.js';
-import { weatheredMetal, woodMaterial, stoneMaterial, slateMaterial } from './materials.js';
+import { weatheredMetal, woodMaterial, stoneMaterial, slateMaterial, addMoonRim } from './materials.js';
 
 const RAIL_MATERIAL = new THREE.MeshStandardMaterial({ color: 0x8A929A, metalness: 0.85, roughness: 0.38, envMapIntensity: 1.0 });
 const SLEEPER_MATERIAL = new THREE.MeshStandardMaterial({ color: 0x3A2A1E, roughness: 0.95, metalness: 0.05 });
@@ -921,9 +921,10 @@ function junctionMarker(scene, x, z, signalColor) {
 // wires, receding down the line for depth + period detail. Two runs, each on the
 // side AWAY from that region's platform so they never clutter the station shots. --
 function addTelegraph(scene) {
-  const poleMat = new THREE.MeshStandardMaterial({ color: 0x1b130a, roughness: 0.95, metalness: 0.04 });
-  const wireMat = new THREE.MeshStandardMaterial({ color: 0x0b0b0d, roughness: 0.6, metalness: 0.5 });
-  const insMat = new THREE.MeshStandardMaterial({ color: 0x2a2622, roughness: 0.7 });
+  // a faint cool moon-rim so the dark poles/wires catch a sliver of moonlight
+  const poleMat = addMoonRim(new THREE.MeshStandardMaterial({ color: 0x1b130a, roughness: 0.95, metalness: 0.04 }), { strength: 0.55, power: 2.6 });
+  const wireMat = addMoonRim(new THREE.MeshStandardMaterial({ color: 0x0b0b0d, roughness: 0.6, metalness: 0.5 }), { strength: 1.0, power: 1.8 });
+  const insMat = addMoonRim(new THREE.MeshStandardMaterial({ color: 0x2a2622, roughness: 0.7 }), { strength: 0.5, power: 2.6 });
   const add = (m) => { m.frustumCulled = false; scene.add(m); return m; };
   const runs = [
     { x: -8, z0: 18, z1: -382, n: 18 },     // start → Creative (platform is +X)
