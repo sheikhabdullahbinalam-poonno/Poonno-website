@@ -31,6 +31,7 @@ export function weatheredMetal(opts = {}) {
     yLow = 0, yHigh = 1,
     paintRough = 0.5, rustRough = 0.95, metalBase = 0.55,
     scale = 0.5, panel = 0.5, rustAmt = 0.0, envMapIntensity = 1.0,
+    rim = 0.0, rimColor = new THREE.Color(0x9fb8db), rimPow = 2.8,
   } = opts;
 
   const mat = new THREE.MeshStandardMaterial({
@@ -44,6 +45,7 @@ export function weatheredMetal(opts = {}) {
       uPaintR: { value: paintRough }, uRustR: { value: rustRough },
       uMetal: { value: metalBase }, uScale: { value: scale },
       uPanel: { value: panel }, uRustAmt: { value: rustAmt },
+      uRimColor: { value: rimColor }, uRimPow: { value: rimPow }, uRimStr: { value: rim },
     });
 
     shader.vertexShader = shader.vertexShader
@@ -53,7 +55,12 @@ export function weatheredMetal(opts = {}) {
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>',
         '#include <common>\n' + NOISE_GLSL +
-        'varying vec3 vLP;\nuniform vec3 uBase,uRust;\nuniform float uYLow,uYHigh,uPaintR,uRustR,uMetal,uScale,uPanel,uRustAmt;')
+        'varying vec3 vLP;\nuniform vec3 uBase,uRust,uRimColor;\nuniform float uYLow,uYHigh,uPaintR,uRustR,uMetal,uScale,uPanel,uRustAmt,uRimPow,uRimStr;')
+      .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+        if (uRimStr > 0.0) {
+          float fres = pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0), uRimPow);
+          totalEmissiveRadiance += uRimColor * fres * uRimStr;       // faint cool moon-rim
+        }`)
       .replace('#include <color_fragment>', `#include <color_fragment>
         vec3 lp = vLP * uScale;
         float grime  = smoothstep(uYHigh, uYLow, vLP.y);                 // 1 low on body
@@ -75,7 +82,7 @@ export function weatheredMetal(opts = {}) {
       .replace('#include <metalnessmap_fragment>',
         '#include <metalnessmap_fragment>\n        metalnessFactor = mix(uMetal, 0.12, gW);');
   };
-  mat.customProgramCacheKey = () => 'weatheredMetal_v1';
+  mat.customProgramCacheKey = () => 'weatheredMetal_v2';
   return mat;
 }
 
@@ -198,17 +205,21 @@ export function slateMaterial(opts = {}) {
   const {
     base = new THREE.Color(0x3a414a), moss = new THREE.Color(0x2b3a2a),
     rough = 0.8, scale = 1.4, bump = 0.7,
+    rim = 0.0, rimColor = new THREE.Color(0x9fb8db), rimPow = 2.8,
   } = opts;
   const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: rough, metalness: 0.1 });
   mat.onBeforeCompile = (shader) => {
-    Object.assign(shader.uniforms, { uBase: { value: base }, uMoss: { value: moss }, uScale: { value: scale }, uBump: { value: bump } });
+    Object.assign(shader.uniforms, {
+      uBase: { value: base }, uMoss: { value: moss }, uScale: { value: scale }, uBump: { value: bump },
+      uRimColor: { value: rimColor }, uRimPow: { value: rimPow }, uRimStr: { value: rim },
+    });
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vRLP;')
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvRLP = position;');
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>',
         '#include <common>\n' + NOISE_GLSL +
-        'varying vec3 vRLP;\nuniform vec3 uBase,uMoss;\nuniform float uScale,uBump;\nfloat gSlateH;')
+        'varying vec3 vRLP;\nuniform vec3 uBase,uMoss,uRimColor;\nuniform float uScale,uBump,uRimPow,uRimStr;\nfloat gSlateH;')
       .replace('#include <color_fragment>', `#include <color_fragment>
         vec3 lp = vRLP * uScale;
         // tiles: wide across Z, short courses down-slope X; staggered, with grout grooves
@@ -231,9 +242,13 @@ export function slateMaterial(opts = {}) {
           vec3 R1 = cross(Sy, normal), R2 = cross(normal, Sx);
           float det = dot(Sx, R1);
           vec3 grad = sign(det) * (Hx * R1 + Hy * R2);
-          normal = normalize(abs(det) * normal - grad * uBump); }`);
+          normal = normalize(abs(det) * normal - grad * uBump);
+          if (uRimStr > 0.0) {
+            float fres = pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0), uRimPow);
+            totalEmissiveRadiance += uRimColor * fres * uRimStr;   // faint cool moon-rim on the roof
+          } }`);
   };
-  mat.customProgramCacheKey = () => 'slate_v1';
+  mat.customProgramCacheKey = () => 'slate_v2';
   return mat;
 }
 

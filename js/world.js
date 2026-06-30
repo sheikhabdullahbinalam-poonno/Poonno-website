@@ -27,6 +27,7 @@ export function updateStations(time) {
     L.mat.emissiveIntensity = L.eBase * f;
     L.light.intensity = L.lBase * f;
     if (L.glow) L.glow.material.opacity = L.gBase * f;
+    if (L.pool) L.pool.material.opacity = L.pBase * f;
   }
 }
 
@@ -435,12 +436,13 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
   // Iron: the train's rusty weatheredMetal so the station shares its patina.
   const stone   = stoneMaterial({ stone: new THREE.Color(0x3d362b), mortar: new THREE.Color(0x12100b), scale: 1.5, bump: 1.1 });
   const brickQ  = stoneMaterial({ stone: new THREE.Color(0x472f22), mortar: new THREE.Color(0x110b06), scale: 2.6, bump: 1.2 }); // quoins/chimney brick
-  const slate   = slateMaterial({ base: new THREE.Color(0x363d46), moss: new THREE.Color(0x29371f), scale: 1.5, bump: 0.8 });
+  const slate   = slateMaterial({ base: new THREE.Color(0x363d46), moss: new THREE.Color(0x29371f), scale: 1.5, bump: 0.8, rim: 0.4 });
   const timber  = woodMaterial({ light: new THREE.Color(0x322212), dark: new THREE.Color(0x120a04), scale: 1.4 });
   const deckWood = woodMaterial({ light: new THREE.Color(0x392717), dark: new THREE.Color(0x180f07), scale: 0.7 });
   const iron    = weatheredMetal({
     base: new THREE.Color(0x191a18), rust: new THREE.Color(0x4f2d1a),
     yLow: 0.0, yHigh: 4.0, paintRough: 0.62, rustRough: 0.97, metalBase: 0.62, scale: 1.6, panel: 0.0, rustAmt: 0.42,
+    rim: 0.4,
   });
   // window glass — a DIM warm interior glow (a low-lit room behind it) so the panes
   // just read, plus a cool sheen for the moonlit reflection (ref photo)
@@ -587,8 +589,12 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
     glow.position.set(lx, y0 + ly, z + lz); glow.scale.set(1.6, 1.6, 1); add(glow);
     const L = new THREE.PointLight(0xffb45a, 1.8, 12, 2);
     L.position.set(lx, y0 + ly, z + lz); add(L);
+    // soft warm light POOL on the deck under the lamp (breathes with the flicker)
+    const pool = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 3.6),
+      new THREE.MeshBasicMaterial({ map: lampGlowTex(), color: 0xffb35a, transparent: true, opacity: 0.26, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+    pool.rotation.x = -Math.PI / 2; pool.position.set(lx, y0 + 0.07, z + lz); add(pool);
     // register for the gentle flame flicker
-    STATION_LAMPS.push({ mat: glassMat, light: L, glow, eBase: 0.5, lBase: 1.8, gBase: 0.5, phase: Math.random() * 6.28 });
+    STATION_LAMPS.push({ mat: glassMat, light: L, glow, pool, eBase: 0.5, lBase: 1.8, gBase: 0.5, pBase: 0.26, phase: Math.random() * 6.28 });
   };
   addLamp(X(nearD + 0.5), -12); addLamp(X(nearD + 0.5), 2); addLamp(X(nearD + 0.5), 15);
   // NB: no building light — the station is dark/unlit (only the platform lamps glow).
@@ -921,10 +927,10 @@ function junctionMarker(scene, x, z, signalColor) {
 // wires, receding down the line for depth + period detail. Two runs, each on the
 // side AWAY from that region's platform so they never clutter the station shots. --
 function addTelegraph(scene) {
-  // a faint cool moon-rim so the dark poles/wires catch a sliver of moonlight
-  const poleMat = addMoonRim(new THREE.MeshStandardMaterial({ color: 0x1b130a, roughness: 0.95, metalness: 0.04 }), { strength: 0.55, power: 2.6 });
-  const wireMat = addMoonRim(new THREE.MeshStandardMaterial({ color: 0x0b0b0d, roughness: 0.6, metalness: 0.5 }), { strength: 1.0, power: 1.8 });
-  const insMat = addMoonRim(new THREE.MeshStandardMaterial({ color: 0x2a2622, roughness: 0.7 }), { strength: 0.5, power: 2.6 });
+  // a VERY faint cool moon-rim so the dark poles/wires just catch a sliver of moonlight
+  const poleMat = addMoonRim(new THREE.MeshStandardMaterial({ color: 0x1b130a, roughness: 0.95, metalness: 0.04 }), { strength: 0.22, power: 3.2 });
+  const wireMat = addMoonRim(new THREE.MeshStandardMaterial({ color: 0x0b0b0d, roughness: 0.6, metalness: 0.5 }), { strength: 0.42, power: 2.4 });
+  const insMat = addMoonRim(new THREE.MeshStandardMaterial({ color: 0x2a2622, roughness: 0.7 }), { strength: 0.2, power: 3.2 });
   const add = (m) => { m.frustumCulled = false; scene.add(m); return m; };
   const runs = [
     { x: -8, z0: 18, z1: -382, n: 18 },     // start → Creative (platform is +X)
