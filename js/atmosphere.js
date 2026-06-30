@@ -176,14 +176,12 @@ export class Atmosphere {
     };
     halo(11, 6, -6, PALETTE.firefly, 3.5, 0.42);
     halo(11, 6, -18, PALETTE.firefly, 3.0, 0.36);
-    halo(11, 6, -340, PALETTE.ember, 3.5, 0.40);
-    halo(-11, 6, -720, PALETTE.firefly, 3.5, 0.40);
-    // (removed the warm halo at the finale tree — it read as a yellow light in its middle)
+    // (the station halos + bright station point lights were removed — the stations
+    //  now carry their own dim lamps + accent lighting in buildStation(); the big
+    //  ember orb by the clock was this halo.)
 
-    // Warm point lights so the platform + stations read (lit, not dark walls).
+    // Warm point light for the START platform only (the boarding area).
     const l1 = new THREE.PointLight(PALETTE.firefly, 3, 24, 2); l1.position.set(11, 6, -10); this.scene.add(l1);
-    const cl = new THREE.PointLight(0xFFCF8C, 22, 32, 2); cl.position.set(9, 6, -340); this.scene.add(cl);
-    const ul = new THREE.PointLight(0xFFCF8C, 22, 32, 2); ul.position.set(-11, 6, -720); this.scene.add(ul);
   }
 
   // ---- pointer glow trail + light -----------------------------------------

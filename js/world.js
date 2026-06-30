@@ -324,29 +324,54 @@ function clockTex() {
 function signTex(name) {
   const w = 640, h = 150;
   const mk = () => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+  // natural humanist sans (cast-concrete signage feel), not a stiff serif
+  const ff = (fs) => `700 ${fs}px "Trebuchet MS","Segoe UI","Helvetica Neue",Arial,sans-serif`;
   const c = mk(), g = c.getContext('2d');
-  g.fillStyle = '#c9bb98'; g.fillRect(0, 0, w, h);                       // weathered cream-tan board
-  for (let i = 0; i < 150; i++) {                                        // plank grain streaks
-    g.strokeStyle = `rgba(110,90,58,${0.03 + Math.random() * 0.06})`; g.lineWidth = 1;
-    const y = Math.random() * h; g.beginPath(); g.moveTo(0, y);
-    g.bezierCurveTo(w * 0.33, y + (Math.random() - 0.5) * 7, w * 0.66, y + (Math.random() - 0.5) * 7, w, y + (Math.random() - 0.5) * 5); g.stroke();
+  // --- cast CEMENT board: mottled grey concrete with aggregate speckle + stains ---
+  g.fillStyle = '#9a988f'; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 240; i++) {
+    g.fillStyle = Math.random() < 0.5 ? `rgba(68,66,60,${0.04 + Math.random() * 0.1})`
+                                      : `rgba(202,200,192,${0.03 + Math.random() * 0.08})`;
+    g.beginPath(); g.arc(Math.random() * w, Math.random() * h, 1 + Math.random() * 4, 0, 6.283); g.fill();
   }
-  const eg = g.createLinearGradient(0, 0, 0, h);                          // edge weathering
-  eg.addColorStop(0, 'rgba(50,36,20,0.28)'); eg.addColorStop(0.5, 'rgba(0,0,0,0)'); eg.addColorStop(1, 'rgba(50,36,20,0.34)');
+  for (let i = 0; i < 28; i++) {                                          // damp weather streaks
+    g.strokeStyle = `rgba(58,56,50,${0.04 + Math.random() * 0.05})`; g.lineWidth = 1 + Math.random() * 2;
+    const x = Math.random() * w; g.beginPath(); g.moveTo(x, 0); g.lineTo(x + (Math.random() - 0.5) * 22, h); g.stroke();
+  }
+  const eg = g.createLinearGradient(0, 0, 0, h);
+  eg.addColorStop(0, 'rgba(38,36,32,0.22)'); eg.addColorStop(0.5, 'rgba(0,0,0,0)'); eg.addColorStop(1, 'rgba(38,36,32,0.3)');
   g.fillStyle = eg; g.fillRect(0, 0, w, h);
+  // recessed cast border
+  g.strokeStyle = 'rgba(40,38,33,0.55)'; g.lineWidth = 6; g.strokeRect(17, 17, w - 34, h - 34);
+  g.strokeStyle = 'rgba(212,210,202,0.22)'; g.lineWidth = 1.5; g.strokeRect(14, 14, w - 28, h - 28);
+  // engraved station name
   g.textAlign = 'center'; g.textBaseline = 'middle';
-  let fs = 66; g.font = `700 ${fs}px Georgia, serif`;
-  while (g.measureText(name).width > w - 64 && fs > 20) { fs -= 2; g.font = `700 ${fs}px Georgia, serif`; }
-  g.fillStyle = 'rgba(238,230,210,0.5)'; g.fillText(name, w / 2 - 1.5, h / 2 - 1.5); // carved bevel highlight
-  g.fillStyle = '#231a0e'; g.fillText(name, w / 2, h / 2);                            // recessed ink
+  let fs = 56; g.font = ff(fs);
+  while (g.measureText(name).width > w - 80 && fs > 16) { fs -= 2; g.font = ff(fs); }
+  g.fillStyle = 'rgba(224,222,214,0.42)'; g.fillText(name, w / 2 - 1.5, h / 2 - 1.5); // cast bevel highlight
+  g.fillStyle = '#33312b'; g.fillText(name, w / 2, h / 2);                            // engraved letters
   const map = new THREE.CanvasTexture(c); map.colorSpace = THREE.SRGBColorSpace; map.anisotropy = 8;
-  // matching depth map — white board, black (recessed) letters in the SAME place
+  // matching depth map: mid board, recessed (dark) border + letters in the same place
   const b = mk(), gb = b.getContext('2d');
-  gb.fillStyle = '#fff'; gb.fillRect(0, 0, w, h);
-  gb.textAlign = 'center'; gb.textBaseline = 'middle'; gb.font = `700 ${fs}px Georgia, serif`;
+  gb.fillStyle = '#b2b2b2'; gb.fillRect(0, 0, w, h);
+  gb.strokeStyle = '#3c3c3c'; gb.lineWidth = 6; gb.strokeRect(17, 17, w - 34, h - 34);
+  gb.textAlign = 'center'; gb.textBaseline = 'middle'; gb.font = ff(fs);
   gb.fillStyle = '#000'; gb.fillText(name, w / 2, h / 2);
   const bump = new THREE.CanvasTexture(b);
   return { map, bump };
+}
+// small warm radial halo for the gas-lamp glow
+let _lampGlow;
+function lampGlowTex() {
+  if (_lampGlow) return _lampGlow;
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const g = c.getContext('2d');
+  const grd = g.createRadialGradient(64, 64, 2, 64, 64, 64);
+  grd.addColorStop(0, 'rgba(255,212,150,0.85)');
+  grd.addColorStop(0.32, 'rgba(255,168,86,0.38)');
+  grd.addColorStop(1, 'rgba(255,150,70,0)');
+  g.fillStyle = grd; g.fillRect(0, 0, 128, 128);
+  _lampGlow = new THREE.CanvasTexture(c); _lampGlow.colorSpace = THREE.SRGBColorSpace; return _lampGlow;
 }
 
 function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, name = '' }) {
@@ -367,8 +392,9 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
     base: new THREE.Color(0x191a18), rust: new THREE.Color(0x4f2d1a),
     yLow: 0.0, yHigh: 4.0, paintRough: 0.62, rustRough: 0.97, metalBase: 0.62, scale: 1.6, panel: 0.0, rustAmt: 0.42,
   });
-  // dark, unlit night glass — the building has NO interior light; faint cool sheen only
-  const winGlow = new THREE.MeshStandardMaterial({ color: 0x0b0e12, roughness: 0.3, metalness: 0.4, envMapIntensity: 0.6 });
+  // dark, unlit night glass (no interior light) — a faint cool emissive reads as a
+  // moon-glint so the panes catch the eye at a glance
+  const winGlow = new THREE.MeshStandardMaterial({ color: 0x0a0d11, emissive: 0x24323f, emissiveIntensity: 0.28, roughness: 0.22, metalness: 0.5, envMapIntensity: 0.9 });
 
   const box = (w, h, dp, mat, d, y, dz, ry = 0) => {
     const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, dp), mat);
@@ -502,6 +528,12 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
     roof.position.set(lx, y0 + ly + 0.45, z + lz); roof.rotation.y = Math.PI / 4; add(roof);
     m(new THREE.SphereGeometry(0.07, 8, 8), ly + 0.66);               // finial ball
     m(new THREE.ConeGeometry(0.03, 0.18, 6), ly + 0.82);             // finial spike
+    // a little soft warm glow around the lantern (additive halo)
+    const glow = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: lampGlowTex(), color: 0xffa552, transparent: true, opacity: 0.55,
+      depthWrite: false, blending: THREE.AdditiveBlending, fog: false,
+    }));
+    glow.position.set(lx, y0 + ly, z + lz); glow.scale.set(2.1, 2.1, 1); add(glow);
     const L = new THREE.PointLight(0xff9f4a, 1.7, 12, 2);
     L.position.set(lx, y0 + ly, z + lz); add(L);
   };
@@ -512,14 +544,18 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
   // approaching train reads it from a distance (rotated to face +z, ref photo) ----
   {
     const { map, bump } = signTex(name);
-    const sw = 4.8, sh = 1.2, signZ = z + PLEN / 2 - 2.5;
-    const boardMat = new THREE.MeshStandardMaterial({ map, bumpMap: bump, bumpScale: 0.9, roughness: 0.82, metalness: 0 });
+    const sw = 4.8, sh = 1.3, signZ = z + PLEN / 2 - 2.5, signCementBack = new THREE.MeshStandardMaterial({ color: 0x6d6a61, roughness: 0.95, metalness: 0 });
+    const boardMat = new THREE.MeshStandardMaterial({ map, bumpMap: bump, bumpScale: 1.0, roughness: 0.92, metalness: 0 });
     const sign = new THREE.Group();
-    const board = new THREE.Mesh(new THREE.BoxGeometry(sw, sh, 0.1), [timber, timber, timber, timber, boardMat, timber]);
-    board.position.y = 2.5; sign.add(board);                          // boardMat on +Z face (toward the train)
-    for (const sx of [-sw * 0.4, sw * 0.4]) {                          // rusted posts
-      const p = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 3.1, 10), iron);
-      p.position.set(sx, 1.55, 0); sign.add(p);
+    // cast cement slab — boardMat (engraved face) on +Z toward the train, cement on the rest
+    const board = new THREE.Mesh(new THREE.BoxGeometry(sw, sh, 0.16),
+      [signCementBack, signCementBack, signCementBack, signCementBack, boardMat, signCementBack]);
+    board.position.y = 2.5; sign.add(board);
+    // two CONCRETE posts BEHIND the board (the -Z side), holding it up
+    const postMat = new THREE.MeshStandardMaterial({ color: 0x6a675e, roughness: 0.96, metalness: 0 });
+    for (const sx of [-sw * 0.32, sw * 0.32]) {
+      const p = new THREE.Mesh(new THREE.BoxGeometry(0.17, 3.3, 0.17), postMat);
+      p.position.set(sx, 1.65, -0.2); sign.add(p);                     // behind the board face
     }
     // set WELL BACK onto the platform so the board never overhangs the track/train
     sign.position.set(X(nearD + 3.0), 0, signZ);
