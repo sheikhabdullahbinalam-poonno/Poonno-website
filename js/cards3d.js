@@ -66,26 +66,51 @@ function wrap(g, str, x, y, maxW, lh, font, lhMul) {
   if (line) g.fillText(line, x, yy);
 }
 
-// ---- fresnel-rimmed glass card material (reflects scene env, glows softly) ----
+// shared drag-velocity uniforms (the whole row smears together) + DOF amount
+const SHARED = {
+  velDistort: { value: 0 }, velAmt: { value: 0 },
+  velDir: { value: new THREE.Vector2(1, 0) }, dofBlur: { value: 0.016 },
+};
+
+// ---- fresnel-rimmed glass card: env reflection + soft glow + VELOCITY DISTORTION
+// (lean/stretch + directional motion blur on the flick) + DOF blur when receded ----
 function glassCardMaterial(tex, accent) {
   const mat = new THREE.MeshStandardMaterial({
     map: tex, color: 0xffffff, roughness: 0.18, metalness: 0.0,
     emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.35,
     envMapIntensity: 1.2, transparent: true, side: THREE.FrontSide,
   });
-  mat.userData.focus = { value: 1 };        // 0 (receded/dim) .. 1 (active/crisp)
+  mat.userData.focus = { value: 1 };        // 0 (receded/dim/blur) .. 1 (active/crisp)
   mat.onBeforeCompile = (shader) => {
     shader.uniforms.uAccent = { value: accent };
     shader.uniforms.uFocus = mat.userData.focus;
+    shader.uniforms.uVelDistort = SHARED.velDistort;
+    shader.uniforms.uVelAmt = SHARED.velAmt;
+    shader.uniforms.uVelDir = SHARED.velDir;
+    shader.uniforms.uDofBlur = SHARED.dofBlur;
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nuniform float uVelDistort;')
+      .replace('#include <begin_vertex>', `#include <begin_vertex>
+        transformed.x += uVelDistort * 0.6;                                   // lean with the drag
+        transformed.x *= 1.0 + abs(uVelDistort) * 0.3;                        // stretch along the flick
+        transformed.z -= abs(uVelDistort) * 0.5 * (1.0 - abs(uv.x * 2.0 - 1.0)); // gentle bow`);
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', '#include <common>\nuniform vec3 uAccent; uniform float uFocus;')
-      .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
-        totalEmissiveRadiance *= (0.4 + 0.6 * uFocus);`)                 // dim when receded
+      .replace('#include <common>', '#include <common>\nuniform vec3 uAccent; uniform float uFocus,uVelAmt,uDofBlur; uniform vec2 uVelDir;\nvec4 gCard;')
+      .replace('#include <map_fragment>', `#ifdef USE_MAP
+        vec4 acc = vec4(0.0); float ws = 0.0;
+        for (int s = -2; s <= 2; s++) { float fs = float(s) * 0.5;
+          vec2 o = uVelDir * fs * uVelAmt * 3.0 + (1.0 - uFocus) * uDofBlur * vec2(fs, fs * 0.6); // motion + DOF blur
+          float wt = 1.0 - abs(fs) * 0.3; acc += texture2D(map, vMapUv + o) * wt; ws += wt; }
+        gCard = acc / ws; diffuseColor *= gCard;
+      #endif`)
+      .replace('#include <emissivemap_fragment>', `#ifdef USE_EMISSIVEMAP
+        totalEmissiveRadiance *= gCard.rgb * (0.4 + 0.6 * uFocus);          // dim when receded
+      #endif`)
       .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
         { float fres = pow(1.0 - clamp(dot(normal, normalize(vViewPosition)),0.0,1.0), 2.6);
-          totalEmissiveRadiance += uAccent * fres * (0.5 + 0.7*uFocus); }`); // accent glass rim
+          totalEmissiveRadiance += uAccent * fres * (0.45 + 0.7 * uFocus); } // accent glass rim`);
   };
-  mat.customProgramCacheKey = () => 'glassCard_v1';
+  mat.customProgramCacheKey = () => 'glassCard_v2';
   return mat;
 }
 
@@ -97,6 +122,8 @@ export class Cards3D {
     this.offset = 0; this.targetOffset = 0; this.vel = 0; this.active = 0;
     this.dragging = false; this._px = 0; this._py = 0; this._moved = 0; this._horizontal = false;
     this._tmp = new THREE.Vector3();
+    this._ray = new THREE.Raycaster(); this._ndc = new THREE.Vector2(-2, -2);
+    this._lastOffset = 0; this._smoothSpeed = 0;
     this._bindPointer();
   }
 
@@ -107,6 +134,7 @@ export class Cards3D {
       this.dragging = true; this._px = e.clientX; this._py = e.clientY; this._moved = 0; this._horizontal = false; this.vel = 0;
     };
     const move = (e) => {
+      this._ndc.set((e.clientX / window.innerWidth) * 2 - 1, -((e.clientY / window.innerHeight) * 2 - 1));
       if (!this.dragging) return;
       const dx = e.clientX - this._px, dy = e.clientY - this._py;
       this._moved += Math.abs(dx) + Math.abs(dy);
@@ -169,23 +197,38 @@ export class Cards3D {
     if (key !== this.station) this._setStation(key);
     if (!this.group.visible) return;
 
+    const dts = Math.min(dt, 0.05);
     // damp toward target; idle inertia decays
     if (!this.dragging) this.targetOffset += this.vel, this.vel *= Math.exp(-dt * 4);
-    this.offset = damp(this.offset, this.targetOffset, 7, Math.min(dt, 0.05));
+    this.offset = damp(this.offset, this.targetOffset, 7, dts);
     this.active = clamp(Math.round(this.offset / STEP), 0, this.cards.length - 1);
 
-    // lay the cards out: active centred + forward + crisp; neighbours recede, dim, angle in
+    // --- VELOCITY DISTORTION: smear/lean/blur from how fast the row is moving ---
+    const ds = this.offset - this._lastOffset; this._lastOffset = this.offset;
+    this._smoothSpeed = damp(this._smoothSpeed, ds / Math.max(dts, 1e-3), 10, dts);
+    const sp = this._smoothSpeed;
+    SHARED.velDistort.value = clamp(sp * 0.032, -0.3, 0.3);
+    SHARED.velAmt.value = clamp(Math.abs(sp) * 0.0024, 0, 0.034);
+    SHARED.velDir.value.set(sp >= 0 ? 1 : -1, 0);
+
+    // --- HOVER: raycast the cursor against the cards (sharpen + bring forward) ---
+    this._ray.setFromCamera(this._ndc, this.camera);
+    const hit = this._ray.intersectObjects(this.cards.map((c) => c.mesh), false)[0];
+    const hovMesh = hit ? hit.object : null;
+
+    // lay the cards out: active centred + forward + crisp; neighbours recede, dim, blur, angle in
     for (const cd of this.cards) {
       const d = (cd.i * STEP) - this.offset;          // signed distance from centre (world units)
       const a = d / STEP;                              // in card-steps
-      const focus = clamp(1 - Math.abs(a) * 0.85, 0, 1);
-      cd.mesh.position.set(d * 0.86, 0, -Math.abs(a) * 0.9 + focus * 0.5); // coverflow depth
+      cd.hovered = cd.mesh === hovMesh;
+      const focus = clamp(1 - Math.abs(a) * 0.85, 0, 1) + (cd.hovered ? 0.16 : 0);
+      const fc = clamp(focus, 0, 1);
+      cd.mesh.position.set(d * 0.86, 0, -Math.abs(a) * 0.9 + fc * 0.5 + (cd.hovered ? 0.12 : 0)); // coverflow depth
       cd.mesh.rotation.y = -a * 0.5;                   // angle side cards toward centre
-      const sc = 1 + focus * 0.18;
-      cd.mesh.scale.setScalar(sc);
-      cd.mesh.material.userData.focus.value = damp(cd.mesh.material.userData.focus.value, focus, 8, Math.min(dt, 0.05));
-      cd.mesh.material.opacity = clamp(0.25 + focus * 0.95, 0, 1);
-      cd.mesh.renderOrder = Math.round(focus * 10);
+      cd.mesh.scale.setScalar(1 + fc * 0.18);
+      cd.mesh.material.userData.focus.value = damp(cd.mesh.material.userData.focus.value, fc, 8, dts);
+      cd.mesh.material.opacity = clamp(0.25 + fc * 0.95, 0, 1);
+      cd.mesh.renderOrder = Math.round(fc * 10);
     }
   }
 
