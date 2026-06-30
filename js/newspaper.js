@@ -45,14 +45,18 @@ export class Newspaper {
         // normalize recenters the model via ITS position; wrap it so we can move
         // a holder freely without undoing that recentring (the train/tree pattern).
         normalize(np, { length: 1.4, align: 'none', ground: false });
-        const sheet = newsprintTex();   // replace the baked "Lorem Ipsum" print
+        const sheet = newsprintTex();   // aged, grungy newsprint (replaces baked print)
+        const bump = newsprintBumpTex(1024, 1320);
+        const torn = newsprintAlphaTex(1024, 1320);
         np.traverse((o) => {
           if (!o.isMesh) return;
           o.frustumCulled = false;
           o.material.side = THREE.DoubleSide;
           o.material.color = new THREE.Color(0x8c8068);   // dim at rest (emissive ramp lights it on the fly)
-          o.material.roughness = 0.95; o.material.metalness = 0;
+          o.material.roughness = 0.97; o.material.metalness = 0;
           o.material.map = sheet;
+          o.material.bumpMap = bump; o.material.bumpScale = 0.5;   // creases/wrinkles — not flat
+          o.material.alphaMap = torn; o.material.transparent = true; o.material.alphaTest = 0.45; // torn edges
           // unlit at rest (#1); a gentle self-light ramps in ONLY as it sweeps up
           // to face the viewer, so the fill reads instead of going black.
           o.material.emissive = new THREE.Color(0xffffff);
@@ -167,12 +171,12 @@ function newsprintTex() {
   const g = c.getContext('2d');
   const ink = '#241a0f', M = 60;
 
-  // aged paper + uneven staining
-  g.fillStyle = '#d7c8a6'; g.fillRect(0, 0, w, h);
+  // aged paper + uneven staining (yellowed, blotchy)
+  g.fillStyle = '#c7b58c'; g.fillRect(0, 0, w, h);
   const grd = g.createLinearGradient(0, 0, 0, h);
-  grd.addColorStop(0, 'rgba(120,95,55,0.10)'); grd.addColorStop(0.5, 'rgba(0,0,0,0)'); grd.addColorStop(1, 'rgba(110,85,45,0.16)');
+  grd.addColorStop(0, 'rgba(120,92,48,0.16)'); grd.addColorStop(0.5, 'rgba(0,0,0,0)'); grd.addColorStop(1, 'rgba(100,74,38,0.22)');
   g.fillStyle = grd; g.fillRect(0, 0, w, h);
-  for (let i = 0; i < 5; i++) { g.fillStyle = `rgba(126,92,46,0.05)`; g.beginPath(); g.arc(Math.random() * w, Math.random() * h, 60 + Math.random() * 120, 0, 6.283); g.fill(); }
+  for (let i = 0; i < 10; i++) { g.fillStyle = `rgba(126,92,46,0.06)`; g.beginPath(); g.arc(Math.random() * w, Math.random() * h, 60 + Math.random() * 140, 0, 6.283); g.fill(); }
 
   // masthead
   g.fillStyle = ink; g.textAlign = 'center';
@@ -209,11 +213,109 @@ function newsprintTex() {
   fakeText(g, ink, px, py + ph + 44, colW, h - (py + ph + 44) - M);   // col 1 (below photo)
   fakeText(g, ink, M + colW + gap, py, colW, h - py - M);             // col 2 (full)
 
+  // ---- AGING (drawn OVER the print so it reads as a genuinely old, handled sheet) ----
+  // faded/sun-bleached patches (lighten the ink unevenly)
+  for (let i = 0; i < 9; i++) {
+    const x = Math.random() * w, y = Math.random() * h, r = 90 + Math.random() * 170;
+    const fg = g.createRadialGradient(x, y, 0, x, y, r);
+    fg.addColorStop(0, 'rgba(206,190,154,0.18)'); fg.addColorStop(1, 'rgba(206,190,154,0)');
+    g.fillStyle = fg; g.beginPath(); g.arc(x, y, r, 0, 6.283); g.fill();
+  }
+  // foxing — small brown age spots
+  for (let i = 0; i < 120; i++) {
+    const x = Math.random() * w, y = Math.random() * h, r = 1 + Math.random() * 5;
+    g.fillStyle = `rgba(${118 + Math.random() * 54},${78 + Math.random() * 40},${38 + Math.random() * 28},${0.05 + Math.random() * 0.16})`;
+    g.beginPath(); g.arc(x, y, r, 0, 6.283); g.fill();
+  }
+  // damp / water stains — soft brown blooms with darker rims
+  for (let i = 0; i < 7; i++) {
+    const x = Math.random() * w, y = Math.random() * h, r = 60 + Math.random() * 150;
+    const wg = g.createRadialGradient(x, y, r * 0.35, x, y, r);
+    wg.addColorStop(0, 'rgba(108,78,38,0.03)'); wg.addColorStop(0.82, 'rgba(92,62,28,0.12)'); wg.addColorStop(1, 'rgba(80,54,24,0)');
+    g.fillStyle = wg; g.beginPath(); g.arc(x, y, r, 0, 6.283); g.fill();
+  }
+  // fold creases — centre cross fold + crinkles, darkened along the lines
+  g.strokeStyle = 'rgba(66,46,24,0.24)'; g.lineWidth = 3;
+  g.beginPath(); g.moveTo(0, h * 0.5); g.bezierCurveTo(w * 0.3, h * 0.5 - 7, w * 0.62, h * 0.5 + 7, w, h * 0.5 - 4); g.stroke();
+  g.beginPath(); g.moveTo(w * 0.5, 0); g.bezierCurveTo(w * 0.5 - 7, h * 0.32, w * 0.5 + 7, h * 0.62, w * 0.5 - 4, h); g.stroke();
+  g.strokeStyle = 'rgba(66,46,24,0.08)'; g.lineWidth = 1.4;
+  for (let i = 0; i < 16; i++) { g.beginPath(); const y = Math.random() * h; g.moveTo(0, y); g.lineTo(w, y + (Math.random() - 0.5) * 46); g.stroke(); }
+  // handled edge darkening (vignette) + ragged dark torn fringe
+  const vg = g.createRadialGradient(w / 2, h / 2, h * 0.3, w / 2, h / 2, h * 0.64);
+  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(54,38,20,0.4)');
+  g.fillStyle = vg; g.fillRect(0, 0, w, h);
+  paintTornFringe(g, w, h);
+
   _newsprint = new THREE.CanvasTexture(c);
   _newsprint.colorSpace = THREE.SRGBColorSpace;
   _newsprint.flipY = false;          // match the GLB's UV convention
   _newsprint.anisotropy = 8;
   return _newsprint;
+}
+
+// a ragged, darkened torn fringe painted INTO the colour map (so even where the
+// alpha cut is subtle, the very edge reads as worn/torn brown paper)
+function paintTornFringe(g, w, h) {
+  g.save();
+  g.strokeStyle = 'rgba(48,33,16,0.6)'; g.lineWidth = 6; g.lineJoin = 'round';
+  g.beginPath();
+  const seg = 54, inset = 10;
+  const j = () => (Math.random() < 0.18 ? 18 + Math.random() * 32 : Math.random() * 14);
+  const pt = (x, y) => g.lineTo(x, y);
+  g.moveTo(inset, inset);
+  for (let i = 0; i <= seg; i++) pt((i / seg) * (w - 2 * inset) + inset, inset + j());
+  for (let i = 0; i <= seg; i++) pt(w - inset - j(), (i / seg) * (h - 2 * inset) + inset);
+  for (let i = seg; i >= 0; i--) pt((i / seg) * (w - 2 * inset) + inset, h - inset - j());
+  for (let i = seg; i >= 0; i--) pt(inset + j(), (i / seg) * (h - 2 * inset) + inset);
+  g.closePath(); g.stroke();
+  g.restore();
+}
+
+// CREASE / CRUMPLE bump so the paper isn't flat — fold grooves + soft crinkle blobs.
+let _newsBump;
+function newsprintBumpTex(w, h) {
+  if (_newsBump) return _newsBump;
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const g = c.getContext('2d');
+  g.fillStyle = '#808080'; g.fillRect(0, 0, w, h);                 // neutral height
+  for (let i = 0; i < 150; i++) {                                  // soft crumple blobs (raise/lower)
+    const x = Math.random() * w, y = Math.random() * h, r = 24 + Math.random() * 90, v = Math.random() < 0.5 ? 36 : 220;
+    const bg = g.createRadialGradient(x, y, 0, x, y, r);
+    bg.addColorStop(0, `rgba(${v},${v},${v},${0.05 + Math.random() * 0.06})`); bg.addColorStop(1, 'rgba(128,128,128,0)');
+    g.fillStyle = bg; g.beginPath(); g.arc(x, y, r, 0, 6.283); g.fill();
+  }
+  // fold grooves (dark) with a bright ridge alongside (the raised crease)
+  const fold = (mv) => { g.lineWidth = 3; g.strokeStyle = 'rgba(30,30,30,0.7)'; mv(0); g.lineWidth = 2; g.strokeStyle = 'rgba(225,225,225,0.5)'; mv(4); };
+  fold((o) => { g.beginPath(); g.moveTo(0, h * 0.5 + o); g.bezierCurveTo(w * 0.3, h * 0.5 - 7 + o, w * 0.62, h * 0.5 + 7 + o, w, h * 0.5 - 4 + o); g.stroke(); });
+  fold((o) => { g.beginPath(); g.moveTo(w * 0.5 + o, 0); g.bezierCurveTo(w * 0.5 - 7 + o, h * 0.32, w * 0.5 + 7 + o, h * 0.62, w * 0.5 - 4 + o, h); g.stroke(); });
+  for (let i = 0; i < 26; i++) {                                   // fine crinkle scratches
+    g.strokeStyle = `rgba(${Math.random() < 0.5 ? 40 : 215},${Math.random() < 0.5 ? 40 : 215},${Math.random() < 0.5 ? 40 : 215},0.18)`;
+    g.lineWidth = 1; g.beginPath(); const y = Math.random() * h; g.moveTo(0, y); g.lineTo(w, y + (Math.random() - 0.5) * 50); g.stroke();
+  }
+  _newsBump = new THREE.CanvasTexture(c); _newsBump.flipY = false; return _newsBump;
+}
+
+// TORN-EDGE alpha map: a ragged opaque region, transparent outside — so the paper's
+// silhouette is actually torn at the edges (kept a small inset so it never holes the
+// middle even if the GLB's UVs are slightly unusual).
+let _newsAlpha;
+function newsprintAlphaTex(w, h) {
+  if (_newsAlpha) return _newsAlpha;
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const g = c.getContext('2d');
+  g.fillStyle = '#000'; g.fillRect(0, 0, w, h);                    // transparent outside
+  g.fillStyle = '#fff'; g.beginPath();
+  const seg = 54, inset = 7;
+  // chunkier, deeper tears: mostly shallow with the occasional deep notch
+  const j = () => (Math.random() < 0.18 ? 18 + Math.random() * 34 : Math.random() * 16);
+  const ln = (x, y) => g.lineTo(x, y);
+  g.moveTo(inset, inset);
+  for (let i = 0; i <= seg; i++) ln((i / seg) * (w - 2 * inset) + inset, inset + j());
+  for (let i = 0; i <= seg; i++) ln(w - inset - j(), (i / seg) * (h - 2 * inset) + inset);
+  for (let i = seg; i >= 0; i--) ln((i / seg) * (w - 2 * inset) + inset, h - inset - j());
+  for (let i = seg; i >= 0; i--) ln(inset + j(), (i / seg) * (h - 2 * inset) + inset);
+  g.closePath(); g.fill();
+  _newsAlpha = new THREE.CanvasTexture(c); _newsAlpha.flipY = false; return _newsAlpha;
 }
 
 // Fine, dense justified "type" (thin, tightly-leaded lines with paragraph breaks
