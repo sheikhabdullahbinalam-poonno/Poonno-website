@@ -292,13 +292,30 @@ function clockTex() {
   if (_clockTexCache.t) return _clockTexCache.t;
   const c = document.createElement('canvas'); c.width = c.height = 128;
   const g = c.getContext('2d'); const R = 64;
-  g.fillStyle = '#ece3cf'; g.beginPath(); g.arc(R, R, 58, 0, 6.283); g.fill();   // cream face
-  g.strokeStyle = '#1c1610'; g.lineWidth = 4; g.beginPath(); g.arc(R, R, 58, 0, 6.283); g.stroke();
-  g.strokeStyle = '#1c1610'; g.lineWidth = 3;
-  for (let i = 0; i < 12; i++) { const a = i / 12 * 6.283; g.beginPath();
-    g.moveTo(R + Math.cos(a) * 50, R + Math.sin(a) * 50); g.lineTo(R + Math.cos(a) * 44, R + Math.sin(a) * 44); g.stroke(); }
-  g.lineWidth = 4; g.beginPath(); g.moveTo(R, R); g.lineTo(R + Math.cos(-1.1) * 28, R + Math.sin(-1.1) * 28); g.stroke(); // hour ~2 o'clock
-  g.lineWidth = 3; g.beginPath(); g.moveTo(R, R); g.lineTo(R + Math.cos(-2.6) * 42, R + Math.sin(-2.6) * 42); g.stroke(); // minute
+  // aged, foxed cream face with brown stains
+  g.fillStyle = '#bdb091'; g.beginPath(); g.arc(R, R, 58, 0, 6.283); g.fill();
+  for (let i = 0; i < 44; i++) {
+    g.fillStyle = `rgba(${88 + Math.random() * 44},${66 + Math.random() * 32},${38 + Math.random() * 24},${0.05 + Math.random() * 0.13})`;
+    g.beginPath(); g.arc(Math.random() * 128, Math.random() * 128, 2 + Math.random() * 9, 0, 6.283); g.fill();
+  }
+  g.fillStyle = 'rgba(74,52,28,0.2)'; g.beginPath(); g.arc(46, 82, 17, 0, 6.283); g.fill();   // damp stain bloom
+  // grimy outer ring
+  g.strokeStyle = 'rgba(26,20,12,0.75)'; g.lineWidth = 6; g.beginPath(); g.arc(R, R, 56, 0, 6.283); g.stroke();
+  // worn, uneven tick marks
+  for (let i = 0; i < 12; i++) {
+    const a = i / 12 * 6.283; const big = i % 3 === 0;
+    g.strokeStyle = `rgba(38,30,18,${0.45 + Math.random() * 0.5})`; g.lineWidth = big ? 4 : 2;
+    g.beginPath(); g.moveTo(R + Math.cos(a) * 50, R + Math.sin(a) * 50);
+    g.lineTo(R + Math.cos(a) * (big ? 41 : 46), R + Math.sin(a) * (big ? 41 : 46)); g.stroke();
+  }
+  // faded, slightly bent hands + hub
+  g.strokeStyle = 'rgba(26,20,12,0.85)'; g.lineCap = 'round';
+  g.lineWidth = 5; g.beginPath(); g.moveTo(R, R); g.lineTo(R + Math.cos(-1.25) * 25, R + Math.sin(-1.25) * 25); g.stroke();
+  g.lineWidth = 3; g.beginPath(); g.moveTo(R, R); g.lineTo(R + Math.cos(2.3) * 40, R + Math.sin(2.3) * 40); g.stroke();
+  g.fillStyle = '#1b150d'; g.beginPath(); g.arc(R, R, 3, 0, 6.283); g.fill();
+  // a hairline crack across the glass
+  g.strokeStyle = 'rgba(232,236,240,0.16)'; g.lineWidth = 1;
+  g.beginPath(); g.moveTo(30, 38); g.lineTo(58, 64); g.lineTo(70, 58); g.lineTo(98, 94); g.stroke();
   _clockTexCache.t = new THREE.CanvasTexture(c); _clockTexCache.t.colorSpace = THREE.SRGBColorSpace; return _clockTexCache.t;
 }
 // Carved wooden name board: a colour map (weathered plank + dark routed serif text
@@ -407,20 +424,29 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
   box(1.0, 2.4, 1.0, brickQ, bD + 1.6, bH + 1.7, -2.2);
   box(1.3, 0.3, 1.3, slate, bD + 1.6, bH + 3.0, -2.2);
 
-  // ---- recessed door: brick surround + panelled timber door (unlit, dark recess) ----
-  const doorW = 1.6, doorH = 3.0;
-  const voidMat = new THREE.MeshStandardMaterial({ color: 0x050506, roughness: 1, metalness: 0 });
-  box(doorW + 0.6, doorH + 0.4, 0.32, brickQ, bFront + 0.06, doorH / 2 + 0.05, 0); // surround
-  box(doorW + 0.4, doorH + 0.2, 0.1, voidMat, bFront - 0.18, doorH / 2 + 0.05, 0); // dark void behind
-  box(doorW, doorH, 0.28, timber, bFront - 0.1, doorH / 2, 0);                     // door slab
-  for (const py of [doorH * 0.72, doorH * 0.38])                                   // raised panels
-    box(doorW * 0.6, doorH * 0.24, 0.06, timber, bFront - 0.26, py, 0);
-  // ---- two windows: brick surround + dim warm pane + timber mullion cross ----
-  for (const dz of [-2.95, 2.95]) {
-    box(1.6, 1.9, 0.32, brickQ, bFront + 0.05, 2.75, dz);            // surround
-    box(1.2, 1.5, 0.1, winGlow, bFront - 0.12, 2.75, dz);           // dim warm pane
-    box(0.1, 1.5, 0.16, timber, bFront - 0.16, 2.75, dz);          // mullion (vertical)
-    box(1.2, 0.1, 0.16, timber, bFront - 0.16, 2.75, dz);          // mullion (horizontal)
+  // The track-facing wall plane (the stone body's front face). Door/windows are
+  // thin in X (depth) and wide in Z (along the wall), sitting PROUD of this face
+  // so they read head-on from the track — the earlier version had X/Z swapped.
+  const bFace = bD - 3.5;
+  // ---- door: brick jambs + lintel framing the opening, panelled timber door set in
+  const doorW = 1.5, doorH = 3.0;
+  for (const sx of [-1, 1])                                                       // brick jambs
+    box(0.34, doorH + 0.3, 0.34, brickQ, bFace - 0.12, doorH / 2, sx * (doorW / 2 + 0.2));
+  box(0.34, 0.42, doorW + 0.9, brickQ, bFace - 0.12, doorH + 0.16, 0);            // lintel
+  box(0.14, doorH, doorW, timber, bFace - 0.06, doorH / 2, 0);                    // door slab (recessed in frame)
+  for (const py of [doorH * 0.7, doorH * 0.36])                                   // raised panels
+    box(0.05, doorH * 0.22, doorW * 0.55, timber, bFace - 0.14, py, 0);
+  box(0.1, 0.1, 0.1, iron, bFace - 0.15, 1.4, doorW * 0.32);                      // door knob
+  // ---- two windows: brick sill + lintel + jambs, recessed dark glass, mullion cross
+  const winW = 1.2, winH = 1.5, winY = 2.75;
+  for (const dz of [-2.9, 2.9]) {
+    box(0.4, 0.2, winW + 0.5, brickQ, bFace - 0.12, winY - winH / 2 - 0.06, dz);  // sill
+    box(0.4, 0.24, winW + 0.5, brickQ, bFace - 0.12, winY + winH / 2 + 0.07, dz); // lintel
+    for (const sx of [-1, 1])                                                     // jambs
+      box(0.36, winH, 0.18, brickQ, bFace - 0.12, winY, dz + sx * (winW / 2 + 0.12));
+    box(0.08, winH, winW, winGlow, bFace - 0.05, winY, dz);                       // recessed dark glass
+    box(0.12, winH, 0.05, timber, bFace - 0.12, winY, dz);                        // mullion (vertical)
+    box(0.12, 0.05, winW, timber, bFace - 0.12, winY, dz);                        // mullion (horizontal)
   }
 
   // ---- clock tower at the front corner: stone shaft + pyramid slate roof + clock
@@ -432,10 +458,12 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
   spire.position.set(X(tD), tH + 1.2, z + tDZ); spire.rotation.y = Math.PI / 4; add(spire);
   const finial = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.7, 6), iron);
   finial.position.set(X(tD), tH + 2.6, z + tDZ); add(finial);
-  // clock face on the track-facing side, only FAINTLY self-lit (was too bright)
-  const clock = new THREE.Mesh(new THREE.CircleGeometry(0.9, 32),
-    new THREE.MeshStandardMaterial({ map: clockTex(), emissive: 0xffffff, emissiveMap: clockTex(), emissiveIntensity: 0.14, roughness: 0.7, side: THREE.DoubleSide }));
+  // grimy clock face on the track-facing side, with a rusted iron bezel; barely self-lit
+  const clock = new THREE.Mesh(new THREE.CircleGeometry(0.82, 32),
+    new THREE.MeshStandardMaterial({ map: clockTex(), emissive: 0xffffff, emissiveMap: clockTex(), emissiveIntensity: 0.1, roughness: 0.88, side: THREE.DoubleSide }));
   clock.position.set(X(tD - tW / 2 - 0.02), 6.2, z + tDZ); clock.rotation.y = faceTrack; add(clock);
+  const bezel = new THREE.Mesh(new THREE.TorusGeometry(0.86, 0.1, 8, 24), iron);
+  bezel.position.set(X(tD - tW / 2 - 0.02), 6.2, z + tDZ); bezel.rotation.y = faceTrack; add(bezel);
 
   // ---- open platform shelter (posts + pitched slate roof) further along ----
   const shZ = 11, shD = 6.2, shW = 5;
@@ -498,6 +526,9 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
     sign.rotation.y = -side * 0.28;                                    // faced +z, angled slightly to the track
     sign.traverse((o) => { o.frustumCulled = false; });
     G.add(sign);
+    // a dim dedicated lamp so ONLY the board reads (short range, warm)
+    const sl = new THREE.PointLight(0xffce93, 1.5, 5.5, 2);
+    sl.position.set(X(nearD + 3.0), 3.0, signZ + 1.5); add(sl);
   }
 
   // ---- weathering: moss, weeds, leaf litter, and a little debris ----
@@ -527,6 +558,17 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
   crate(bFront - 1.3, -3.6, 0.7); crate(bFront - 1.7, -3.2, 0.5); crate(shD + 1.8, -shW + 2, 0.6);
   const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.9, 12), timber);
   barrel.position.set(X(bFront - 1.0), deckTop + 0.45, z - 5.6); add(barrel);
+
+  // ---- ACCENT LIGHTING — exterior architectural light that shapes the building
+  // without re-lighting the interior. Cool moon-rim on the roof/upper wall, a warm
+  // uplight grazing the brick façade (so the masonry/bump relief reads), and a
+  // faint cool wash on the clock tower to make it a focal silhouette. ----
+  const rim = new THREE.PointLight(0x9fb8db, 3.4, 36, 2);            // cool sky-side roof rim
+  rim.position.set(X(bD + 2), bH + 12, z - bW); add(rim);
+  const graze = new THREE.PointLight(0xffb060, 2.4, 11, 2);          // warm façade uplight (grazes brick)
+  graze.position.set(X(bFace - 0.7), 0.5, z + 1.2); add(graze);
+  const towerWash = new THREE.PointLight(0xbcd2ee, 1.8, 16, 2);      // faint cool on the clock tower
+  towerWash.position.set(X(tD - 2.2), tH * 0.72, z + tDZ + 2.2); add(towerWash);
   return G;
 }
 
