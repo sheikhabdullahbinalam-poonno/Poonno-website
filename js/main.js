@@ -275,7 +275,7 @@ window.__poonno = {
   freeze(px, py, pz, lx, ly, lz) { frozen = { p: new THREE.Vector3(px, py, pz), l: new THREE.Vector3(lx, ly, lz) }; },
   unfreeze() { frozen = null; },
   openModal, closeModal,
-  train, scene, camera, newspaper, // debug handles
+  train, scene, camera, newspaper, cards3d, // debug handles
 };
 
 // Honor ?t=<0..1> on load so screenshots can target a specific beat instantly.

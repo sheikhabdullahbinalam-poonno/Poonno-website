@@ -24,6 +24,8 @@ const CARD_W = 1.45, CARD_H = 1.95, GAP = 0.6, STEP = CARD_W + GAP;
 const ANCHOR_DIST = 4.4;                 // how far in front of the hold camera the row sits
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const damp = (cur, tgt, lambda, dt) => cur + (tgt - cur) * (1 - Math.exp(-lambda * dt));
+const lerp = (a, b, k) => a + (b - a) * k;
+const ease = (k) => { k = clamp(k, 0, 1); return k * k * (3 - 2 * k); };
 
 // ---- designed card face (no photos): accent wash + brand / title / meta -----
 function faceTexture(project, accentHex) {
@@ -64,6 +66,23 @@ function wrap(g, str, x, y, maxW, lh, font, lhMul) {
     else line = test;
   }
   if (line) g.fillText(line, x, yy);
+}
+
+// ---- case-study detail panel (HTML — readable copy + real Behance links) ----
+function buildDetailHTML(p) {
+  const block = (label, text) => text ? `<div class="cd-block"><div class="cd-label">${label}</div><p>${text}</p></div>` : '';
+  const tools = (p.tools || []).map((t) => `<span class="cd-tool">${t}</span>`).join('');
+  const links = (p.links || []).map((l) => `<a class="cd-link" href="${l.url}" target="_blank" rel="noopener">${l.label} <span>&#8599;</span></a>`).join('');
+  return `<div class="cd-kicker">${p.meta || ''}</div>
+    <h2 class="cd-brand">${p.brand || ''}</h2>
+    <div class="cd-titletxt">${p.title || ''}</div>
+    <div class="cd-rule"></div>
+    ${block('Challenge', p.challenge)}
+    ${block('Approach', p.approach)}
+    ${block('Impact', p.impact)}
+    ${block('Key Learning', p.learning)}
+    ${tools ? `<div class="cd-block"><div class="cd-label">Tools</div><div class="cd-tools">${tools}</div></div>` : ''}
+    ${links ? `<div class="cd-links">${links}</div>` : ''}`;
 }
 
 // shared drag-velocity uniforms (the whole row smears together) + DOF amount
@@ -124,13 +143,26 @@ export class Cards3D {
     this._tmp = new THREE.Vector3();
     this._ray = new THREE.Raycaster(); this._ndc = new THREE.Vector2(-2, -2);
     this._lastOffset = 0; this._smoothSpeed = 0;
+    this._accentHex = ACCENTS.ember;
+    this.detailOpen = false; this.detailT = 0;          // 0 (grid) .. 1 (case open)
+    this._buildDetailDOM();
     this._bindPointer();
+  }
+
+  _buildDetailDOM() {
+    const el = document.createElement('div');
+    el.id = 'cards3d-detail'; el.setAttribute('aria-hidden', 'true');
+    el.innerHTML = `<button class="cd-close" type="button" aria-label="Close case">&#215;</button><div class="cd-scroll"><div class="cd-body"></div></div>`;
+    document.body.appendChild(el);
+    this.detailEl = el; this.detailBody = el.querySelector('.cd-body');
+    el.querySelector('.cd-close').addEventListener('click', () => this.closeDetail());
+    window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && this.detailOpen) this.closeDetail(); });
   }
 
   _bindPointer() {
     const dom = document;
     const down = (e) => {
-      if (!this.group.visible) return;
+      if (!this.group.visible || this.detailOpen) return;
       this.dragging = true; this._px = e.clientX; this._py = e.clientY; this._moved = 0; this._horizontal = false; this.vel = 0;
     };
     const move = (e) => {
@@ -149,6 +181,11 @@ export class Cards3D {
     const up = () => {
       if (!this.dragging) return;
       this.dragging = false;
+      if (this._moved < 7 && !this.detailOpen) {               // a tap, not a drag → maybe open a case
+        this._ray.setFromCamera(this._ndc, this.camera);
+        const hit = this._ray.intersectObjects(this.cards.map((c) => c.mesh), false)[0];
+        if (hit) { const cd = this.cards.find((c) => c.mesh === hit.object); if (cd) { this.targetOffset = cd.i * STEP; this.openDetail(cd); return; } }
+      }
       this.targetOffset += this.vel * 6;                       // flick inertia
       this.targetOffset = clamp(Math.round(this.targetOffset / STEP) * STEP, 0, (this.cards.length - 1) * STEP); // snap
     };
@@ -164,15 +201,34 @@ export class Cards3D {
     this.targetOffset = clamp((this.active + n) * STEP, 0, (this.cards.length - 1) * STEP);
   }
 
+  openDetail(cd) {
+    this._detailCard = cd;
+    this.detailBody.innerHTML = buildDetailHTML(cd.project);
+    this.detailEl.querySelector('.cd-scroll').scrollTop = 0;
+    this.detailEl.style.setProperty('--accent', this._accentHex);
+    this.detailEl.classList.add('show'); this.detailEl.setAttribute('aria-hidden', 'false');
+    this.detailOpen = true;
+    document.documentElement.style.overflow = 'hidden';     // hold the journey scroll while reading
+  }
+
+  closeDetail() {
+    if (!this.detailOpen) return;
+    this.detailOpen = false; this._detailCard = null;
+    this.detailEl.classList.remove('show'); this.detailEl.setAttribute('aria-hidden', 'true');
+    document.documentElement.style.overflow = '';
+  }
+
   _setStation(key) {
+    if (this.detailOpen) this.closeDetail();
     // tear down
     for (const cd of this.cards) { cd.mesh.geometry.dispose(); cd.mesh.material.dispose(); if (cd.tex) cd.tex.dispose(); }
-    this.cards = []; this.group.clear();
+    this.cards = []; this.group.clear(); this._detailCard = null;
     this.station = key;
     if (!key) { this.group.visible = false; return; }
     const st = STATIONS[key];
     const accentHex = ACCENTS[st.data.accent] || ACCENTS.ember;
     const accent = ACCENT3[st.data.accent] || ACCENT3.ember;
+    this._accentHex = accentHex;
     // anchor the row in front of the hold camera, facing it
     this._tmp.copy(st.look).sub(st.pos).normalize();
     this.group.position.copy(st.pos).addScaledVector(this._tmp, ANCHOR_DIST);
@@ -198,37 +254,56 @@ export class Cards3D {
     if (!this.group.visible) return;
 
     const dts = Math.min(dt, 0.05);
-    // damp toward target; idle inertia decays
-    if (!this.dragging) this.targetOffset += this.vel, this.vel *= Math.exp(-dt * 4);
-    this.offset = damp(this.offset, this.targetOffset, 7, dts);
-    this.active = clamp(Math.round(this.offset / STEP), 0, this.cards.length - 1);
+    this.detailT = damp(this.detailT, this.detailOpen ? 1 : 0, 6, dts);
+    const dT = ease(this.detailT);
+
+    // damp toward target; idle inertia decays (frozen while a case is open)
+    if (!this.detailOpen) {
+      if (!this.dragging) this.targetOffset += this.vel, this.vel *= Math.exp(-dt * 4);
+      this.offset = damp(this.offset, this.targetOffset, 7, dts);
+      this.active = clamp(Math.round(this.offset / STEP), 0, this.cards.length - 1);
+    }
 
     // --- VELOCITY DISTORTION: smear/lean/blur from how fast the row is moving ---
     const ds = this.offset - this._lastOffset; this._lastOffset = this.offset;
     this._smoothSpeed = damp(this._smoothSpeed, ds / Math.max(dts, 1e-3), 10, dts);
     const sp = this._smoothSpeed;
-    SHARED.velDistort.value = clamp(sp * 0.032, -0.3, 0.3);
-    SHARED.velAmt.value = clamp(Math.abs(sp) * 0.0024, 0, 0.034);
+    SHARED.velDistort.value = clamp(sp * 0.032, -0.3, 0.3) * (1 - dT);
+    SHARED.velAmt.value = clamp(Math.abs(sp) * 0.0024, 0, 0.034) * (1 - dT);
     SHARED.velDir.value.set(sp >= 0 ? 1 : -1, 0);
 
-    // --- HOVER: raycast the cursor against the cards (sharpen + bring forward) ---
-    this._ray.setFromCamera(this._ndc, this.camera);
-    const hit = this._ray.intersectObjects(this.cards.map((c) => c.mesh), false)[0];
-    const hovMesh = hit ? hit.object : null;
+    // --- HOVER (disabled while a case is open) ---
+    let hovMesh = null;
+    if (!this.detailOpen) {
+      this._ray.setFromCamera(this._ndc, this.camera);
+      const hit = this._ray.intersectObjects(this.cards.map((c) => c.mesh), false)[0];
+      hovMesh = hit ? hit.object : null;
+    }
 
-    // lay the cards out: active centred + forward + crisp; neighbours recede, dim, blur, angle in
+    // lay out: coverflow grid; on detail-open the chosen card eases to a big "cover"
+    // pose (forward + left) while the rest fade away — the HTML case panel sits right.
     for (const cd of this.cards) {
-      const d = (cd.i * STEP) - this.offset;          // signed distance from centre (world units)
-      const a = d / STEP;                              // in card-steps
+      const d = (cd.i * STEP) - this.offset, a = d / STEP;
       cd.hovered = cd.mesh === hovMesh;
       const focus = clamp(1 - Math.abs(a) * 0.85, 0, 1) + (cd.hovered ? 0.16 : 0);
       const fc = clamp(focus, 0, 1);
-      cd.mesh.position.set(d * 0.86, 0, -Math.abs(a) * 0.9 + fc * 0.5 + (cd.hovered ? 0.12 : 0)); // coverflow depth
-      cd.mesh.rotation.y = -a * 0.5;                   // angle side cards toward centre
-      cd.mesh.scale.setScalar(1 + fc * 0.18);
-      cd.mesh.material.userData.focus.value = damp(cd.mesh.material.userData.focus.value, fc, 8, dts);
-      cd.mesh.material.opacity = clamp(0.25 + fc * 0.95, 0, 1);
-      cd.mesh.renderOrder = Math.round(fc * 10);
+      // base coverflow transform
+      const bx = d * 0.86, by = 0, bz = -Math.abs(a) * 0.9 + fc * 0.5 + (cd.hovered ? 0.12 : 0);
+      const bry = -a * 0.5, bsc = 1 + fc * 0.18;
+      const isDetail = this._detailCard === cd;
+      if (isDetail) {                                   // → "cover" pose
+        cd.mesh.position.set(lerp(bx, -CARD_W * 0.52, dT), lerp(by, 0.12, dT), lerp(bz, 1.75, dT));
+        cd.mesh.rotation.y = lerp(bry, 0.1, dT);
+        cd.mesh.scale.setScalar(lerp(bsc, 1.5, dT));
+        cd.mesh.material.userData.focus.value = damp(cd.mesh.material.userData.focus.value, 1, 8, dts);
+        cd.mesh.material.opacity = 1; cd.mesh.renderOrder = 20; cd.mesh.visible = true;
+      } else {
+        cd.mesh.position.set(bx, by, bz); cd.mesh.rotation.y = bry; cd.mesh.scale.setScalar(bsc);
+        cd.mesh.material.userData.focus.value = damp(cd.mesh.material.userData.focus.value, fc, 8, dts);
+        cd.mesh.material.opacity = clamp(0.25 + fc * 0.95, 0, 1) * (1 - dT);
+        cd.mesh.renderOrder = Math.round(fc * 10);
+        cd.mesh.visible = cd.mesh.material.opacity > 0.02;
+      }
     }
   }
 
