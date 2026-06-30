@@ -26,6 +26,7 @@ import { buildCab } from './cab.js';
 import { initModals, openModal, closeModal, isOpen } from './modals.js';
 import { initInteraction } from './interaction.js';
 import { initCards, updateCards } from './cards.js';
+import { Cards3D } from './cards3d.js';
 import { initCursor } from './cursor.js';
 import { initFinale, updateFinale } from './finale.js';
 import { Newspaper, NEWS } from './newspaper.js';
@@ -184,6 +185,10 @@ initCards({
   onLock: () => { document.documentElement.style.overflow = 'hidden'; },
   onUnlock: () => { document.documentElement.style.overflow = ''; },
 });
+// Project cards are now rendered IN the 3D scene (Active-Theory "Work" language);
+// hide the legacy HTML carousel (keep the module loaded for the case-detail overlay).
+const _cr = document.getElementById('cards-root'); if (_cr) _cr.style.display = 'none';
+const cards3d = new Cards3D(scene, camera);
 initCursor();
 initFinale();
 
@@ -244,7 +249,7 @@ function animate() {
   updateStationOverlay(t);              // "Next Station" approach announcements
   cab.group.visible = false;            // cab retired in favour of the newspaper intro
   interaction.update();
-  updateCards(t);
+  cards3d.update(t, dt);
   updateFinale(t);
 
   const b = beatAt(t);
