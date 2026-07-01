@@ -558,11 +558,14 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
   // gable roof (two slate slopes) — slightly irregular: per-slope jitter, a ridge
   // cap, and a scatter of displaced / missing slate tiles along the eaves.
   for (const s of [-1, 1]) {
-    const slope = new THREE.Mesh(new THREE.BoxGeometry(7.7, 0.24, bW + 0.7), slate);
-    slope.position.set(X(bD) + side * s * 1.55, bH + 1.35 + (Math.random() - 0.5) * 0.08, z + (Math.random() - 0.5) * 0.1);
+    // slope spans ridge → eave only (~5u). It was 7.7u wide, so it overshot PAST the
+    // ridge and the excess stuck up into the sky as a "lifted flap" off the far side.
+    // Height + tilt tuned so the two slope tips tuck UNDER the ridge cap (no slivers).
+    const slope = new THREE.Mesh(new THREE.BoxGeometry(5.0, 0.24, bW + 0.7), slate);
+    slope.position.set(X(bD) + side * s * 1.9, bH + 1.05 + (Math.random() - 0.5) * 0.06, z + (Math.random() - 0.5) * 0.1);
     // tilt must mirror with `side` (like the position does) or the roof inverts to a
     // valley on the +X station. -side*s puts the ridge (high) at centre, eaves (low) out.
-    slope.rotation.z = -side * s * 0.62 + (Math.random() - 0.5) * 0.025;
+    slope.rotation.z = -side * s * 0.55 + (Math.random() - 0.5) * 0.02;
     slope.rotation.x = (Math.random() - 0.5) * 0.018; add(slope);
     // (removed the scattered loose/displaced eave tiles — from the low train-eye angle
     //  they silhouetted against the sky and read as broken junk protruding off the roof)
