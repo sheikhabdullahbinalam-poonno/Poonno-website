@@ -26,7 +26,9 @@ const BASE_RAW = 'assets/models/';
 const FILES_RAW = {
   lamp:  'low-poly_lamp_post.glb',
   bench: 'Platform_bench.glb',
-  station: 'abandoned_train_station.glb',   // trial: scanned abandoned station
+  // NB: abandoned_train_station.glb (7.5 MB) is intentionally NOT preloaded — the
+  // procedural station now borrows its cream-stone + red-tile LOOK via cheap shaders
+  // (see world.js), so the heavy scan never has to download.
 };
 
 const draco = new DRACOLoader().setDecoderPath('https://unpkg.com/three@0.160.0/examples/jsm/libs/draco/');
