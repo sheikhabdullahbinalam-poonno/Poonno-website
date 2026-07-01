@@ -561,47 +561,54 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
   }
   box(4.4, 0.4, 0.12, timber, shD - 1.45, deckTop + 2.3, shZ + shW / 2 + 0.3); // valance board
 
-  // bench against the building — GLB prop, async loaded
+  // bench on the platform — GLB prop with its ORIGINAL textures, seat facing the track.
+  // normalize aligns the bench's long (seat) axis to Z (parallel to the track); a
+  // holder then yaws it so the seat looks OUT toward the track/train, not the wall.
   preloadModels().then(() => {
     const bm = getModel('bench');
     if (!bm) return;
-    normalize(bm, { length: 2.0, ground: true });
-    bm.traverse((o) => { if (o.isMesh) { o.material = timber; o.material.needsUpdate = true; } });
-    bm.position.set(X(bFront - 0.85), deckTop, z + 4.5);
-    bm.rotation.y = faceTrack + Math.PI;   // back to building wall
-    add(bm);
+    normalize(bm, { length: 2.2, ground: true });
+    const holder = new THREE.Group();
+    holder.add(bm);
+    holder.position.set(X(bFront - 1.5), deckTop, z + 4.5);
+    holder.rotation.y = side > 0 ? 0 : Math.PI;   // seat faces the track (PI flips front/back)
+    add(holder);
   });
 
-  // ---- low-poly lamp post GLB — async loaded, lights added immediately ----
+  // ---- low-poly lamp post GLB (ORIGINAL textures) — async loaded ----
   const addLamp = (lx, lz) => {
-    const LY = 4.2;         // lantern height above deck surface (matches GLB scale)
+    const LH = 4.2;         // target post height (world units)
+    let headY = LH * 0.82;  // light/glow sit at the lantern head; refined after load
     const lampGroup = new THREE.Group();
     lampGroup.position.set(lx, deckTop, z + lz);
     add(lampGroup);
 
-    preloadModels().then(() => {
-      const lm = getModel('lamp');
-      if (!lm) return;
-      normalize(lm, { height: LY, ground: true });
-      lm.traverse((o) => { if (o.isMesh) { o.material = iron; o.castShadow = false; } });
-      lampGroup.add(lm);
-    });
-
-    // Warm glow sprite + point light — independent of async model, flicker-ready
+    // Warm glow sprite + point light + floor pool (flicker-ready). Created now at a
+    // default head height, then dropped onto the real lantern once the model loads.
     const glow = new THREE.Sprite(new THREE.SpriteMaterial({
       map: lampGlowTex(), color: 0xffc878, transparent: true, opacity: 0.5,
       depthWrite: false, blending: THREE.AdditiveBlending, fog: false,
     }));
-    glow.position.set(0, LY, 0); glow.scale.set(1.6, 1.6, 1);
+    glow.position.set(0, headY, 0); glow.scale.set(1.4, 1.4, 1);
     lampGroup.add(glow);
 
     const L = new THREE.PointLight(0xffb45a, 1.8, 12, 2);
-    L.position.set(0, LY, 0); lampGroup.add(L);
+    L.position.set(0, headY, 0); lampGroup.add(L);
 
     const pool = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 3.6),
       new THREE.MeshBasicMaterial({ map: lampGlowTex(), color: 0xffb35a, transparent: true, opacity: 0.26, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
     pool.rotation.x = -Math.PI / 2; pool.position.set(0, 0.07, 0);
     lampGroup.add(pool);
+
+    preloadModels().then(() => {
+      const lm = getModel('lamp');
+      if (!lm) return;
+      const { size } = normalize(lm, { height: LH, ground: true });
+      lm.traverse((o) => { if (o.isMesh) o.castShadow = false; });   // keep original materials
+      lampGroup.add(lm);
+      headY = size.y * 0.86;                    // real lantern height near the top
+      glow.position.y = headY; L.position.y = headY;
+    });
 
     const glassMat = new THREE.MeshStandardMaterial({ color: 0x2a1d0c, emissive: 0xffb45a, emissiveIntensity: 0.5, roughness: 0.5, transparent: true, opacity: 0.9 });
     const phase = (STATION_LAMPS.length % 2) * Math.PI + Math.random() * 0.5;
@@ -738,6 +745,14 @@ function addLandmarks(scene) {
     const lamp = new THREE.PointLight(0xFFCF8C, 7, 20, 2);
     lamp.position.set(5.5, 4.3, pz); scene.add(lamp);
   }
+  // Soft flood aimed at the waiting train (x≈0, z≈-10) so it reads on the dark
+  // platform without washing out — a gentle cool-warm key from the canopy side.
+  const trainFlood = new THREE.SpotLight(0xFCE6BE, 6, 34, Math.PI / 5, 0.6, 1.4);
+  trainFlood.position.set(6, 7.5, -4);
+  trainFlood.target.position.set(0, 1.5, -12);
+  scene.add(trainFlood); scene.add(trainFlood.target);
+  const trainFill = new THREE.PointLight(0xBFD2E6, 2.4, 26, 2);   // faint moon-side fill
+  trainFill.position.set(-3, 4.5, -10); scene.add(trainFill);
 
   // Creative Origins — cinematic station on the +X side (camera looks right).
   // tMin/tMax gate its lights to the approach→depart window (hold is 0.548–0.638).

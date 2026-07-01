@@ -114,6 +114,50 @@ function readScroll() {
 window.addEventListener('scroll', readScroll, { passive: true });
 readScroll();
 
+// --- scroll gates ------------------------------------------------------------
+// The hero (newspaper) has two moments that must play in FULL, uninterrupted,
+// no matter how the viewer scrolls: the fly-in and the page-turn. Each gate is a
+// t-span that, once its start is crossed, PINS the page and auto-scrubs t from
+// the span's start to its end over a fixed duration while all scroll/drag/key
+// input is blocked. This reuses every existing t-driven animation — we simply
+// own the clock for those spans so a quick flick can't skip past them.
+const GATES = REDUCED ? [] : [
+  { from: 0.050, to: 0.190, dur: 1650, armed: true },  // newspaper fly-in → article
+  { from: 0.280, to: 0.330, dur: 1400, armed: true },  // gentle page-turn
+];
+let gate = null, gateClock = 0, prevT = 0;
+const tToY = (tt) => (document.documentElement.scrollHeight - window.innerHeight) * tt;
+
+function updateGates(dt) {
+  if (gate) {
+    gateClock += dt * 1000;
+    const p = Math.min(1, gateClock / gate.dur);
+    const e = p * p * (3 - 2 * p);                       // smoothstep ease
+    t = gate.from + (gate.to - gate.from) * e;
+    window.scrollTo(0, tToY(t));
+    if (p >= 1) { gate.armed = false; gate = null; }
+    prevT = t;
+    return;
+  }
+  for (const g of GATES) {
+    if (t < g.from - 0.004) g.armed = true;              // re-arm after scrolling back up
+    else if (g.armed && prevT < g.from && t >= g.from) { // crossed the trigger going down
+      gate = g; gateClock = 0;
+      t = g.from; window.scrollTo(0, tToY(t));
+      break;
+    }
+  }
+  prevT = t;
+}
+
+// Block input while a gate is scrubbing (so nothing fights the fixed-rate play).
+const blockIfGated = (e) => { if (gate) e.preventDefault(); };
+window.addEventListener('wheel', blockIfGated, { passive: false });
+window.addEventListener('touchmove', blockIfGated, { passive: false });
+window.addEventListener('keydown', (e) => {
+  if (gate && ['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', ' ', 'Home', 'End'].includes(e.key)) e.preventDefault();
+});
+
 function goTo(tt) {
   const max = document.documentElement.scrollHeight - window.innerHeight;
   window.scrollTo({ top: max * Math.min(1, Math.max(0, tt)), behavior: REDUCED ? 'auto' : 'smooth' });
@@ -207,6 +251,7 @@ const clock = new THREE.Clock();
 function animate() {
   requestAnimationFrame(animate);
   const dt = Math.min(clock.getDelta(), 0.05);
+  updateGates(dt);                        // pin & auto-scrub the hero's fly-in / page-turn
 
   if (frozen) {
     camera.position.copy(frozen.p);
@@ -270,7 +315,9 @@ window.__poonno = {
     tt = Math.min(1, Math.max(0, tt));
     const max = document.documentElement.scrollHeight - window.innerHeight;
     window.scrollTo(0, max * tt); // instant (no smooth-scroll race on the visibility gates)
-    t = tt; rig.snap(t);
+    t = tt; prevT = tt; gate = null; // disable gate crossing-detection for this jump
+    GATES.forEach((g) => { g.armed = tt < g.from; });
+    rig.snap(t);
   },
   freeze(px, py, pz, lx, ly, lz) { frozen = { p: new THREE.Vector3(px, py, pz), l: new THREE.Vector3(lx, ly, lz) }; },
   unfreeze() { frozen = null; },
