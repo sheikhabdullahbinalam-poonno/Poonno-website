@@ -222,17 +222,23 @@ export function slateMaterial(opts = {}) {
         'varying vec3 vRLP;\nuniform vec3 uBase,uMoss,uRimColor;\nuniform float uScale,uBump,uRimPow,uRimStr;\nfloat gSlateH;')
       .replace('#include <color_fragment>', `#include <color_fragment>
         vec3 lp = vRLP * uScale;
-        // tiles: wide across Z, short courses down-slope X; staggered, with grout grooves
-        vec2 uv = vec2(lp.z * 1.0, lp.x * 1.7);
+        // pantiles: repeat along the course (Z), stacked in overlapping courses down-slope (X)
+        vec2 uv = vec2(lp.z * 1.0, lp.x * 1.6);
         float row = floor(uv.y); uv.x += 0.5 * mod(row, 2.0);
         vec2 f = fract(uv); vec2 d = min(f, 1.0 - f);
-        float tile = smoothstep(0.0, 0.05, min(d.x, d.y));            // 0 grout, 1 tile face
+        float tile = smoothstep(0.0, 0.04, min(d.x, d.y));           // 0 seam, 1 tile face
         float tn = h31(vec3(floor(uv.x), row, 5.0));
-        vec3 col = mix(uBase * 0.42, uBase * (0.7 + 0.55 * tn), tile); // grout darker, tiles vary
-        float wet = fbm3(vec3(lp.x * 0.6, lp.z * 0.6, 1.7));          // water-stain / moss streaks
-        col = mix(col, uMoss, 0.28 * smoothstep(0.52, 0.86, wet));
-        col *= 0.78 + 0.34 * fbm3(lp * 3.0);                          // grime mottle
-        gSlateH = tile * 0.85 + fbm3(lp * 5.0) * 0.22;                // tiles proud, grout recessed
+        vec3 col = mix(uBase * 0.32, uBase * (0.72 + 0.5 * tn), tile); // dark seam, tiles vary
+        // barrel-clay profile: a bright crest falls to dark flanks across each tile, plus
+        // a shadow band where the course below tucks under — reads as rounded pantiles.
+        float crest = sin(clamp(f.x, 0.0, 1.0) * 3.14159);
+        col *= mix(1.0, 0.5 + 0.62 * crest, tile);
+        float overlap = smoothstep(0.0, 0.30, f.y);
+        col *= mix(1.0, 0.52 + 0.48 * overlap, tile);
+        float wet = fbm3(vec3(lp.x * 0.6, lp.z * 0.6, 1.7));         // water-stain / moss streaks
+        col = mix(col, uMoss, 0.26 * smoothstep(0.52, 0.86, wet));
+        col *= 0.66 + 0.32 * fbm3(lp * 3.0);                         // grime mottle (darker for night)
+        gSlateH = tile * (0.55 + 0.5 * crest) + fbm3(lp * 5.0) * 0.2; // rounded relief per tile
         diffuseColor.rgb *= col;`)
       .replace('#include <roughnessmap_fragment>',
         '#include <roughnessmap_fragment>\n        roughnessFactor *= 0.85 + 0.2 * fbm3(vRLP * uScale * 6.0);')
@@ -248,7 +254,7 @@ export function slateMaterial(opts = {}) {
             totalEmissiveRadiance += uRimColor * fres * uRimStr;   // faint cool moon-rim on the roof
           } }`);
   };
-  mat.customProgramCacheKey = () => 'slate_v2';
+  mat.customProgramCacheKey = () => 'slate_v3';
   return mat;
 }
 

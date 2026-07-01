@@ -508,7 +508,7 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
   // dusk, not daylight. Same cheap shaders (no texture downloads).
   const stone   = stoneMaterial({ stone: new THREE.Color(0x6f664f), mortar: new THREE.Color(0x201b12), scale: 1.5, bump: 1.15 }); // cream stone
   const brickQ  = stoneMaterial({ stone: new THREE.Color(0x5c3423), mortar: new THREE.Color(0x160d07), scale: 2.6, bump: 1.2 });   // reddish brick quoins
-  const slate   = slateMaterial({ base: new THREE.Color(0x6a3a27), moss: new THREE.Color(0x33351d), scale: 1.15, bump: 0.85 });    // red terracotta pantiles
+  const slate   = slateMaterial({ base: new THREE.Color(0x5e3421), moss: new THREE.Color(0x2b2c18), scale: 0.72, bump: 1.0 });     // dark red terracotta pantiles (bigger tiles)
   const timber  = woodMaterial({ light: new THREE.Color(0x322212), dark: new THREE.Color(0x120a04), scale: 1.4 });
   const deckWood = woodMaterial({ light: new THREE.Color(0x392717), dark: new THREE.Color(0x180f07), scale: 0.7 });
   const iron    = weatheredMetal({
