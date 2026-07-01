@@ -26,6 +26,7 @@ const BASE_RAW = 'assets/models/';
 const FILES_RAW = {
   lamp:  'low-poly_lamp_post.glb',
   bench: 'Platform_bench.glb',
+  station: 'abandoned_train_station.glb',   // trial: scanned abandoned station
 };
 
 const draco = new DRACOLoader().setDecoderPath('https://unpkg.com/three@0.160.0/examples/jsm/libs/draco/');

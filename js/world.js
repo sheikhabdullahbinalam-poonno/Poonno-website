@@ -19,6 +19,10 @@ const RAIL_MATERIAL = new THREE.MeshStandardMaterial({ color: 0x565b60, metalnes
 const SLEEPER_MATERIAL = new THREE.MeshStandardMaterial({ color: 0x3A2A1E, roughness: 0.95, metalness: 0.05 });
 const ONE = new THREE.Vector3(1, 1, 1);
 
+// TRIAL: swap the procedurally-built station for the scanned abandoned_train_station
+// GLB. Flip to false to restore the hand-built stone station instantly.
+const USE_GLB_STATION = true;
+
 // Gas-lamp flicker registry + per-station light groups. updateStations(time, t)
 // flickers the lamps AND gates each station's PointLights to when that station is in
 // view — keeping the active light count ~10 across the journey instead of ~32.
@@ -460,6 +464,36 @@ function gravelTex() {
   _gravelTex.repeat.set(3, 16); _gravelTex.colorSpace = THREE.SRGBColorSpace; return _gravelTex;
 }
 
+// TRIAL station swap: place the scanned abandoned_train_station GLB (original
+// textures) behind the platform, grounded, scaled, and yawed to face the track.
+// Tuning knobs (STATION_GLB) are up top so we can iterate scale/offset/yaw fast.
+const STATION_GLB = { height: 8, outset: 2.0, lift: 0, yawExtra: 0, dim: 0.4 };
+function addStationModel(G, X, z, side, bD) {
+  const holder = new THREE.Group();
+  holder.position.set(X(bD + STATION_GLB.outset), STATION_GLB.lift, z);
+  holder.rotation.y = (side > 0 ? -Math.PI / 2 : Math.PI / 2) + STATION_GLB.yawExtra; // face the track
+  G.add(holder);
+  preloadModels().then(() => {
+    const st = getModel('station');
+    if (!st) return;
+    normalize(st, { height: STATION_GLB.height, align: 'none', ground: true });
+    // The scan carries baked DAYLIGHT in its albedo — knock it down so it sits in the
+    // night instead of glowing white. (setScalar is idempotent across both stations.)
+    st.traverse((o) => {
+      if (!o.isMesh) return;
+      o.castShadow = false; o.receiveShadow = false;   // frustumCulled stays ON (static, cull off-screen)
+      (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => {
+        if (m.color) m.color.setScalar(STATION_GLB.dim);
+        if ('envMapIntensity' in m) m.envMapIntensity = 0.2;
+        if (m.emissive) m.emissiveIntensity = 0;
+        if ('roughness' in m) m.roughness = Math.max(m.roughness ?? 0.9, 0.9);
+        m.needsUpdate = true;
+      });
+    });
+    holder.add(st);
+  }).catch((e) => console.warn('[world] station model load failed:', e.message));
+}
+
 function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, name = '', tMin = 0, tMax = 1 }) {
   const G = new THREE.Group(); scene.add(G);
   // Static geometry → keep frustum culling ON (off-screen stations aren't drawn).
@@ -500,8 +534,17 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
   for (let dz = -PLEN / 2 + 2; dz <= PLEN / 2 - 2; dz += 5)            // trestle supports under the edge
     box(0.3, deckTop, 0.3, timber, nearD + 0.2, deckTop / 2, dz);
 
-  // ---- station building: stone walls, timber framing, slate gable, brick chimney
+  // ---- station building dimensions (kept even in GLB mode so the station lights,
+  // bench and nameplate still reference the same footprint) ----
   const bD = 13.5, bFront = 10.2, bW = 8.5, bH = 5.0;                  // body
+  const bFace = bD - 3.5;                                              // track-facing wall plane
+  const tD = bFront + 0.4, tDZ = -bW / 2 - 0.6, tH = 8.2, tW = 2.6;    // clock tower
+  const shZ = 11, shD = 6.2, shW = 5;                                  // open shelter
+
+  if (USE_GLB_STATION) {
+    addStationModel(G, X, z, side, bD);
+  } else {
+  // procedural station: stone walls, timber framing, slate gable, brick chimney
   box(7, bH, bW, stone, bD, bH / 2, 0);
   // brick corner quoins at the track-facing front
   box(0.6, bH, 0.6, brickQ, bFront, bH / 2, -bW / 2 + 0.3);
@@ -543,7 +586,6 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
   // The track-facing wall plane (the stone body's front face). Door/windows are
   // thin in X (depth) and wide in Z (along the wall), sitting PROUD of this face
   // so they read head-on from the track — the earlier version had X/Z swapped.
-  const bFace = bD - 3.5;
   // ---- door: brick jambs + lintel framing the opening, panelled timber door set in
   const doorW = 1.5, doorH = 3.0;
   for (const sx of [-1, 1])                                                       // brick jambs
@@ -566,7 +608,6 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
   }
 
   // ---- clock tower at the front corner: stone shaft + pyramid slate roof + clock
-  const tD = bFront + 0.4, tDZ = -bW / 2 - 0.6, tH = 8.2, tW = 2.6;
   box(tW, tH, tW, stone, tD, tH / 2, tDZ);
   box(0.26, tH, 0.26, timber, tD - tW / 2 + 0.1, tH / 2, tDZ - tW / 2 + 0.1); // corner beams
   box(0.26, tH, 0.26, timber, tD - tW / 2 + 0.1, tH / 2, tDZ + tW / 2 - 0.1);
@@ -582,7 +623,6 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
   bezel.position.set(X(tD - tW / 2 - 0.02), 6.2, z + tDZ); bezel.rotation.y = faceTrack; add(bezel);
 
   // ---- open platform shelter (posts + pitched slate roof) further along ----
-  const shZ = 11, shD = 6.2, shW = 5;
   for (const px of [shD - 1.6, shD + 1.6]) for (const pz of [-shW / 2, shW / 2])
     box(0.18, 2.5, 0.18, timber, px, deckTop + 1.25, shZ + pz);       // four posts
   box(4.6, 0.16, shW + 0.6, timber, shD, deckTop + 2.5, shZ);          // lintel/ceiling
@@ -591,6 +631,7 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
     r.rotation.z = -side * s * 0.5; r.position.set(X(shD) + side * s * 1.25, deckTop + 3.0, z + shZ);
   }
   box(4.4, 0.4, 0.12, timber, shD - 1.45, deckTop + 2.3, shZ + shW / 2 + 0.3); // valance board
+  } // end procedural station (else)
 
   // bench on the platform — GLB prop with its ORIGINAL textures, seat facing the track.
   // normalize aligns the bench's long (seat) axis to Z (parallel to the track); a
@@ -735,16 +776,25 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
   // graze up the stone façade so the masonry/bump reads, a soffit wash catches the
   // gable, the windows glow warm on their own (emissive), and a cool moon-rim keeps
   // the roof silhouette. Warm + localised = architectural, not a flat flood. ----
-  const warmUp = (d, y, dz, int, dist) => { const L = new THREE.PointLight(0xffb265, int, dist, 2); L.position.set(X(d), y, z + dz); add(L); };
-  warmUp(bFace - 0.55, 0.5, -2.9, 2.8, 8.5);   // façade uplight — left
-  warmUp(bFace - 0.55, 0.5, 0.6, 2.8, 8.5);    // façade uplight — door/centre
-  warmUp(bFace - 0.55, 0.5, 2.9, 2.8, 8.5);    // façade uplight — right
-  warmUp(bFace - 0.5, bH + 0.5, 0, 2.4, 8);    // soffit wash up into the gable peak
-  warmUp(tD - tW / 2 - 0.4, 1.8, tDZ, 2.2, 8); // warm graze on the clock-tower face
-  const rim = new THREE.PointLight(0x9fb8db, 3.0, 34, 2);           // cool moon-rim on the roof
-  rim.position.set(X(bD + 2), bH + 12, z - bW); add(rim);
-  const towerWash = new THREE.PointLight(0xbcd2ee, 1.5, 16, 2);     // faint cool on the tower
-  towerWash.position.set(X(tD - 2.2), tH * 0.72, z + tDZ + 2.2); add(towerWash);
+  if (USE_GLB_STATION) {
+    // The scan already carries baked light; add only a soft warm graze + a cool roof
+    // rim so it settles into the night without blowing out.
+    const wash = new THREE.PointLight(0xffb265, 1.1, 15, 2);
+    wash.position.set(X(bD - 2.0), 2.4, z); add(wash);
+    const rim = new THREE.PointLight(0x9fb8db, 1.4, 34, 2);
+    rim.position.set(X(bD + 2), bH + 12, z - bW); add(rim);
+  } else {
+    const warmUp = (d, y, dz, int, dist) => { const L = new THREE.PointLight(0xffb265, int, dist, 2); L.position.set(X(d), y, z + dz); add(L); };
+    warmUp(bFace - 0.55, 0.5, -2.9, 2.8, 8.5);   // façade uplight — left
+    warmUp(bFace - 0.55, 0.5, 0.6, 2.8, 8.5);    // façade uplight — door/centre
+    warmUp(bFace - 0.55, 0.5, 2.9, 2.8, 8.5);    // façade uplight — right
+    warmUp(bFace - 0.5, bH + 0.5, 0, 2.4, 8);    // soffit wash up into the gable peak
+    warmUp(tD - tW / 2 - 0.4, 1.8, tDZ, 2.2, 8); // warm graze on the clock-tower face
+    const rim = new THREE.PointLight(0x9fb8db, 3.0, 34, 2);           // cool moon-rim on the roof
+    rim.position.set(X(bD + 2), bH + 12, z - bW); add(rim);
+    const towerWash = new THREE.PointLight(0xbcd2ee, 1.5, 16, 2);     // faint cool on the tower
+    towerWash.position.set(X(tD - 2.2), tH * 0.72, z + tDZ + 2.2); add(towerWash);
+  }
 
   // gather this station's PointLights and gate them to when it's in view (perf).
   const sLights = []; G.traverse((o) => { if (o.isLight) sLights.push(o); });
