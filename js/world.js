@@ -124,11 +124,17 @@ function addForest(scene) {
       emissive: new THREE.Color(0x2C5A66), emissiveIntensity: 0.38, envMapIntensity: 0.7,
     });
 
-    const { rest, moon } = forestMatrices();
-    const buildSet = (mats, foliageMat) => {
+    // Start-platform trees: UNLIT dark silhouettes so the platform lamps/flood don't
+    // catch them (they sit right beside the lights). MeshBasic ignores lighting; fog
+    // still applies so distance reads. Kept a touch above black to stay visible.
+    const foliageStart = new THREE.MeshBasicMaterial({ color: 0x111c16 });
+    const trunkStart = new THREE.MeshBasicMaterial({ color: 0x0a0805 });
+
+    const { rest, moon, start } = forestMatrices();
+    const buildSet = (mats, foliageMat, trunkMatArg = trunkMat) => {
       if (!mats.length) return;
       baked.forEach((b, idx) => {
-        const inst = new THREE.InstancedMesh(b.geometry, idx === 0 ? foliageMat : trunkMat, mats.length);
+        const inst = new THREE.InstancedMesh(b.geometry, idx === 0 ? foliageMat : trunkMatArg, mats.length);
         for (let i = 0; i < mats.length; i++) inst.setMatrixAt(i, mats[i]);
         inst.instanceMatrix.needsUpdate = true;
         inst.frustumCulled = false;   // transforms live in the matrix; keep it visible
@@ -137,6 +143,7 @@ function addForest(scene) {
     };
     buildSet(rest, foliageDark);
     buildSet(moon, foliageDark);   // #9: Unilever forest now matches run 1 (no luminous leaves)
+    buildSet(start, foliageStart, trunkStart);   // near-platform trees stay dark
   }).catch((e) => console.warn('[world] forest load failed:', e.message));
 }
 
@@ -160,7 +167,7 @@ function bakeModelMeshes(root) {
 // + random yaw. Trees are laid in CONTINUOUS rows hugging both sides of the track
 // (weighted close so the camera threads a tunnel of trees), not scattered far off.
 function forestMatrices() {
-  const rest = [], moon = [];
+  const rest = [], moon = [], start = [];
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), s = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
   const add = (out, x, z, h) => {
     q.setFromAxisAngle(up, Math.random() * Math.PI * 2);
@@ -200,7 +207,7 @@ function forestMatrices() {
     (x > 1 && x < 15 && z > -14 && z < 18) ||   // platform + canopy footprint
     (Math.abs(x) < 2.6 && z > -12 && z < 37)    // the waiting train
   );
-  const startTree = (x, z, hMin, hMax) => { if (!startClear(x, z)) add(rest, x, z, hMin + Math.random() * (hMax - hMin)); };
+  const startTree = (x, z, hMin, hMax) => { if (!startClear(x, z)) add(start, x, z, hMin + Math.random() * (hMax - hMin)); };
   // far back wall behind the train's tail (+z)
   for (let z = 48; z >= 20; z -= 2.4)
     for (let k = 0; k < 3; k++) startTree(-20 + Math.random() * 46, z + (Math.random() - 0.5) * 2, 9, 17);
@@ -222,7 +229,7 @@ function forestMatrices() {
     if (z < -676 && z > -742 && Math.abs(x + 12) < 24) continue; // Unilever approach clear
     add(rest, x, z, 7 + Math.random() * 11);
   }
-  return { rest, moon };
+  return { rest, moon, start };
 }
 
 // A layered fir built by merging three smooth cones (base at y0, total height ~1).
