@@ -177,11 +177,11 @@ function applyCarriageMaterials(root) {
     if (!g.boundingBox) g.computeBoundingBox();
     const bb = g.boundingBox;
     o.material = weatheredMetal({
-      base: new THREE.Color(0x2b4a4a),     // engine-like dark teal paint
+      base: new THREE.Color(0x3d6462),     // engine-like greenish-teal, lifted so it reads at night
       rust: new THREE.Color(0x5e3018),
       yLow: bb.min.y, yHigh: bb.max.y,
-      paintRough: 0.5, rustRough: 0.95, metalBase: 0.55,
-      scale: 0.6, panel: 0.55, envMapIntensity: 1.1,
+      paintRough: 0.55, rustRough: 0.95, metalBase: 0.38,   // less metal = catches diffuse fill
+      scale: 0.6, panel: 0.55, envMapIntensity: 1.0,
     });
   });
 }
@@ -215,18 +215,22 @@ function applyTrainMaterials(root) {
 // Overlaid on the carriage group (g) AFTER the GLB loads; positions are in
 // group-local space where y=0 = BODY_Y above rail = carriage centre height.
 function decorateCarriage(g, W, H, L) {
-  const m = mats();
-  const yBot = -BODY_Y + 0.08;       // just above rail level in group-local space
+  const gy = grungyYellowMaterial();
+  const yBot = -BODY_Y + 0.08;         // group-local
   const yMid = -BODY_Y + H * 0.45;
+  const ySide = -BODY_Y + H * 0.17;    // low on the BODY (not on the track below it)
 
-  // Yellow footplate strip along the bottom edge
-  const foot = new THREE.Mesh(new THREE.BoxGeometry(W + 0.32, 0.12, L + 0.1), m.yellow);
-  foot.position.set(0, yBot + 0.06, 0); g.add(foot);
+  // Yellow footstep rail along EACH SIDE of the body (matches the engine's climbing
+  // rail). NB: no full-width slab under the car — that was showing on the track.
+  for (const sx of [-1, 1]) {
+    const strip = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.15, L * 0.94), gy);
+    strip.position.set(sx * (W / 2 + 0.05), ySide, 0); g.add(strip);
+  }
 
   // Vertical grab rails at door positions on both sides
   for (const sx of [-1, 1]) {
     for (const ez of [-(L / 2 - 0.9), L / 2 - 0.9]) {
-      const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, H * 0.52, 8), m.yellow);
+      const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, H * 0.52, 8), gy);
       rail.position.set(sx * (W / 2 + 0.07), yBot + H * 0.28, ez); g.add(rail);
     }
   }
@@ -240,8 +244,38 @@ function decorateCarriage(g, W, H, L) {
   const haz = hazardMaterial();
   for (const [ez, ry] of [[ L / 2 + 0.02, 0], [-(L / 2 + 0.02), Math.PI]]) {
     const panel = new THREE.Mesh(new THREE.PlaneGeometry(W * 0.88, 0.44), haz);
-    panel.position.set(0, yBot + 0.28, ez); panel.rotation.y = ry; g.add(panel);
+    panel.position.set(0, yBot + H * 0.14, ez); panel.rotation.y = ry; g.add(panel);
   }
+}
+
+// Grungy industrial yellow — base yellow overlaid with rust streaks, spots, grime
+// and scratches so the rails read as weathered metal, not flat plastic.
+let _gyMat;
+function grungyYellowMaterial() {
+  if (_gyMat) return _gyMat;
+  const w = 256, h = 64;
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const g = c.getContext('2d');
+  g.fillStyle = '#C9A227'; g.fillRect(0, 0, w, h);                          // industrial yellow base
+  for (let i = 0; i < 70; i++) {                                            // vertical rust/grime streaks
+    g.fillStyle = `rgba(${58 + Math.random() * 46},${30 + Math.random() * 22},10,${0.05 + Math.random() * 0.18})`;
+    const x = Math.random() * w; g.fillRect(x, Math.random() * h * 0.4, 1 + Math.random() * 3, h);
+  }
+  for (let i = 0; i < 55; i++) {                                            // rust flecks
+    g.fillStyle = `rgba(${60 + Math.random() * 40},${34 + Math.random() * 24},14,${0.12 + Math.random() * 0.32})`;
+    g.beginPath(); g.arc(Math.random() * w, Math.random() * h, 1 + Math.random() * 4, 0, 6.283); g.fill();
+  }
+  const grd = g.createLinearGradient(0, 0, 0, h);                           // dark grime top & bottom edges
+  grd.addColorStop(0, 'rgba(28,18,6,0.42)'); grd.addColorStop(0.5, 'rgba(0,0,0,0)'); grd.addColorStop(1, 'rgba(28,18,6,0.5)');
+  g.fillStyle = grd; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 22; i++) {                                            // fine scratches
+    g.strokeStyle = `rgba(90,72,22,${0.18 + Math.random() * 0.3})`; g.lineWidth = 0.6;
+    const y = Math.random() * h; g.beginPath(); g.moveTo(0, y); g.lineTo(w, y + (Math.random() - 0.5) * 8); g.stroke();
+  }
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(3, 1); tex.anisotropy = 8;
+  _gyMat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.82, metalness: 0.28, envMapIntensity: 0.6 });
+  return _gyMat;
 }
 
 let _hazMat;
@@ -250,8 +284,8 @@ function hazardMaterial() {
   const cw = 256, ch = 72;
   const c = document.createElement('canvas'); c.width = cw; c.height = ch;
   const g = c.getContext('2d');
-  g.fillStyle = '#F4C430'; g.fillRect(0, 0, cw, ch);
-  g.fillStyle = '#111';
+  g.fillStyle = '#C9A227'; g.fillRect(0, 0, cw, ch);          // weathered yellow (not bright)
+  g.fillStyle = '#141210';
   const sw = 20;
   for (let x = -ch; x < cw + ch; x += sw * 2) {
     g.beginPath();
@@ -259,8 +293,15 @@ function hazardMaterial() {
     g.lineTo(x + sw + ch, ch); g.lineTo(x + ch, ch);
     g.closePath(); g.fill();
   }
+  for (let i = 0; i < 70; i++) {                               // rust flecks + grime over the stripes
+    g.fillStyle = `rgba(${60 + Math.random() * 40},${34 + Math.random() * 24},14,${0.1 + Math.random() * 0.3})`;
+    g.beginPath(); g.arc(Math.random() * cw, Math.random() * ch, 1 + Math.random() * 4, 0, 6.283); g.fill();
+  }
+  const grd = g.createLinearGradient(0, 0, 0, ch);
+  grd.addColorStop(0, 'rgba(24,16,6,0.4)'); grd.addColorStop(0.5, 'rgba(0,0,0,0)'); grd.addColorStop(1, 'rgba(24,16,6,0.5)');
+  g.fillStyle = grd; g.fillRect(0, 0, cw, ch);
   const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
-  _hazMat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.7, metalness: 0.1, side: THREE.DoubleSide });
+  _hazMat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85, metalness: 0.12, side: THREE.DoubleSide });
   return _hazMat;
 }
 

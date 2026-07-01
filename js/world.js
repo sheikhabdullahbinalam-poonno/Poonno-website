@@ -745,17 +745,15 @@ function addLandmarks(scene) {
     const lamp = new THREE.PointLight(0xFFCF8C, 7, 20, 2);
     lamp.position.set(5.5, 4.3, pz); scene.add(lamp);
   }
-  // Soft, tame lighting along the WHOLE waiting rake (loco z≈-9 → last carriage
-  // z≈+33) so every car reads on the dark platform without washing out. Warm keys
-  // from the platform/canopy side (+x), cooler moon-side fills (−x) for the faces
-  // the camera sees during the intro orbit. Kept low-intensity + short range.
-  for (const cz of [-9, 2, 18, 33]) {                 // one warm key per car
-    const key = new THREE.PointLight(0xFCE6BE, 5, 22, 2);
-    key.position.set(4.5, 5.2, cz); scene.add(key);
-  }
-  for (const cz of [-6, 10, 26]) {                    // cooler moon-side fills
-    const fill = new THREE.PointLight(0xBFD2E6, 3, 24, 2);
-    fill.position.set(-4, 4.6, cz); scene.add(fill);
+  // Light the WHOLE waiting rake (loco z≈-9 → last carriage z≈+33) so every car
+  // reads on the dark platform. A warm key on the platform side (+x) AND a cooler
+  // moon-side fill (−x) at EACH car, so whichever side the intro camera faces is lit.
+  // Moderate intensity + short range keeps it tame (no blown-out blocks).
+  for (const cz of [-9, 2, 18, 33]) {
+    const key = new THREE.PointLight(0xFFE0B0, 6.5, 26, 2);
+    key.position.set(4.5, 4.8, cz); scene.add(key);
+    const fill = new THREE.PointLight(0xC2D4E8, 4, 26, 2);
+    fill.position.set(-4.5, 4.4, cz); scene.add(fill);
   }
 
   // Creative Origins — cinematic station on the +X side (camera looks right).
