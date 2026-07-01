@@ -486,7 +486,9 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
   for (const s of [-1, 1]) {
     const slope = new THREE.Mesh(new THREE.BoxGeometry(7.7, 0.24, bW + 0.7), slate);
     slope.position.set(X(bD) + side * s * 1.55, bH + 1.35 + (Math.random() - 0.5) * 0.08, z + (Math.random() - 0.5) * 0.1);
-    slope.rotation.z = s * 0.62 + (Math.random() - 0.5) * 0.025;
+    // tilt must mirror with `side` (like the position does) or the roof inverts to a
+    // valley on the +X station. -side*s puts the ridge (high) at centre, eaves (low) out.
+    slope.rotation.z = -side * s * 0.62 + (Math.random() - 0.5) * 0.025;
     slope.rotation.x = (Math.random() - 0.5) * 0.018; add(slope);
     // loose/displaced tiles riding the eave, a few sunk (missing) for a worn line
     for (let i = 0; i < 9; i++) {
@@ -496,7 +498,7 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
         missing ? new THREE.MeshStandardMaterial({ color: 0x161a1f, roughness: 1 }) : slate);
       tile.position.set(X(bD) + side * s * 3.0 + side * (Math.random() - 0.5) * 0.3,
         bH + 0.45 + (missing ? -0.06 : Math.random() * 0.08), tz);
-      tile.rotation.set((Math.random() - 0.5) * 0.1, (Math.random() - 0.5) * 0.2, s * 0.62 + (Math.random() - 0.5) * 0.12);
+      tile.rotation.set((Math.random() - 0.5) * 0.1, (Math.random() - 0.5) * 0.2, -side * s * 0.62 + (Math.random() - 0.5) * 0.12);
       add(tile);
     }
   }
@@ -557,7 +559,7 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
   box(4.6, 0.16, shW + 0.6, timber, shD, deckTop + 2.5, shZ);          // lintel/ceiling
   for (const s of [-1, 1]) {                                           // pitched roof
     const r = box(2.9, 0.18, shW + 1, slate, shD, deckTop + 2.95, shZ, 0);
-    r.rotation.z = s * 0.5; r.position.set(X(shD) + side * s * 1.25, deckTop + 3.0, z + shZ);
+    r.rotation.z = -side * s * 0.5; r.position.set(X(shD) + side * s * 1.25, deckTop + 3.0, z + shZ);
   }
   box(4.4, 0.4, 0.12, timber, shD - 1.45, deckTop + 2.3, shZ + shW / 2 + 0.3); // valance board
 
