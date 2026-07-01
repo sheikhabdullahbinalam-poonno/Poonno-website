@@ -191,6 +191,26 @@ function forestMatrices() {
   // Run 1 (start → Creative @ z−340): open & airy; ENDS at −296 so the last ~44u
   // before the station are clear and Creative Origins is visible on approach.
   run(rest, -14, -296, 0, 10, 16, null, { near: 6, span: 7, wall2: 0.2, depthProb: 0.45, step: 2.8 });
+
+  // Wrap the START platform in forest so it reads as a station in the woods. Run 1
+  // only lays trees FROM z−14 onward; here we fill BEHIND the platform (+x), the far
+  // end behind the waiting train (+z), and the moon side (−x), keeping clear of the
+  // deck, canopy and train. (Train waits x≈0, z −9→+33; platform x 2.5–13.5, z −13→17.)
+  const startClear = (x, z) => (
+    (x > 1 && x < 15 && z > -14 && z < 18) ||   // platform + canopy footprint
+    (Math.abs(x) < 2.6 && z > -12 && z < 37)    // the waiting train
+  );
+  const startTree = (x, z, hMin, hMax) => { if (!startClear(x, z)) add(rest, x, z, hMin + Math.random() * (hMax - hMin)); };
+  // far back wall behind the train's tail (+z)
+  for (let z = 48; z >= 20; z -= 2.4)
+    for (let k = 0; k < 3; k++) startTree(-20 + Math.random() * 46, z + (Math.random() - 0.5) * 2, 9, 17);
+  // flanks: a near wall + a sparser deep band on BOTH sides, from the back to Run 1's start
+  for (let z = 36; z >= -14; z -= 2.3) {
+    startTree(15 + Math.random() * 7, z, 10, 17);                 // +x near wall (behind platform)
+    if (Math.random() < 0.6) startTree(23 + Math.random() * 24, z, 8, 15); // +x deep band
+    startTree(-6 - Math.random() * 8, z, 10, 17);                 // −x near wall (moon side)
+    if (Math.random() < 0.55) startTree(-15 - Math.random() * 26, z, 8, 15); // −x deep band
+  }
   // Run 2 (Creative → Unilever @ z−720): luminous moonlit forest, thinned a touch;
   // ENDS at −676 so Unilever Station can be anticipated through the clearing.
   run(moon, -404, -676, -5, 11, 19, null, { near: 5, span: 6, wall2: 0.32, depthProb: 0.45, step: 2.4 });
