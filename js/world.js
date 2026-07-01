@@ -495,13 +495,13 @@ function addStationModel(G, X, z, side, bD) {
   }).catch((e) => console.warn('[world] station model load failed:', e.message));
 }
 
-// Platform decking: one weathered-plank photo (1024², ~130KB) shared by both station
-// decks. Reused as its own bumpMap so grain catches raked lamp light for free — no
-// extra download. Colour-multiplied down to sit in the dark night scene.
+// Platform decking: one weathered-plank photo (1024² WebP, ~72KB) shared by both
+// station decks. Reused as its own bumpMap so grain catches raked lamp light for free —
+// no extra download. Colour-multiplied down to sit in the dark night scene.
 let _deckMat;
 function deckMaterial() {
   if (_deckMat) return _deckMat;
-  const tex = new THREE.TextureLoader().load('assets/textures/opt/wood_floor_diff_1024.jpg');
+  const tex = new THREE.TextureLoader().load('assets/textures/opt/wood_floor_diff_1024.webp');
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
   tex.anisotropy = 8;
