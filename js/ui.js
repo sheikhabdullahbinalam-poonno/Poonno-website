@@ -123,10 +123,11 @@ async function runLoader(sigBox) {
       const timed = easeInOut(Math.min(1, (now - start) / DUR));
       const cap = ready ? 1 : 0.92;
       const r = Math.min(cap, timed);
-      const n = Math.floor(r * 100);
+      const done = ready && r >= 0.999;             // fully loaded AND animation complete
+      const n = done ? 100 : Math.floor(r * 100);   // force 100 on the final frame (floor(0.999*100)=99)
       numEl.textContent = n.toString().padStart(2, '0');
       if (statusEl) statusEl.textContent = r >= 0.92 ? (ready ? 'ALL ABOARD' : 'LOADING...') : 'BOARDING';
-      if (r >= 0.999 && ready) resolve();
+      if (done) resolve();
       else requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);
