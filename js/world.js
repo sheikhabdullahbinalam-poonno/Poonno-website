@@ -564,17 +564,8 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
     // valley on the +X station. -side*s puts the ridge (high) at centre, eaves (low) out.
     slope.rotation.z = -side * s * 0.62 + (Math.random() - 0.5) * 0.025;
     slope.rotation.x = (Math.random() - 0.5) * 0.018; add(slope);
-    // loose/displaced tiles riding the eave, a few sunk (missing) for a worn line
-    for (let i = 0; i < 9; i++) {
-      const tz = z - (bW + 0.5) / 2 + Math.random() * (bW + 0.5);
-      const missing = Math.random() < 0.18;
-      const tile = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.07, 0.5),
-        missing ? new THREE.MeshStandardMaterial({ color: 0x161a1f, roughness: 1 }) : slate);
-      tile.position.set(X(bD) + side * s * 3.0 + side * (Math.random() - 0.5) * 0.3,
-        bH + 0.45 + (missing ? -0.06 : Math.random() * 0.08), tz);
-      tile.rotation.set((Math.random() - 0.5) * 0.1, (Math.random() - 0.5) * 0.2, -side * s * 0.62 + (Math.random() - 0.5) * 0.12);
-      add(tile);
-    }
+    // (removed the scattered loose/displaced eave tiles — from the low train-eye angle
+    //  they silhouetted against the sky and read as broken junk protruding off the roof)
   }
   // ridge cap along the apex
   const ridge = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.26, bW + 0.8), slate);
