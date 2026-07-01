@@ -571,25 +571,25 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
     const holder = new THREE.Group();
     holder.add(bm);
     holder.position.set(X(bFront - 1.5), deckTop, z + 4.5);
-    holder.rotation.y = side > 0 ? 0 : Math.PI;   // seat faces the track (PI flips front/back)
+    holder.rotation.y = side > 0 ? Math.PI : 0;   // seat faces the track (PI flips front/back)
     add(holder);
   });
 
   // ---- low-poly lamp post GLB (ORIGINAL textures) — async loaded ----
   const addLamp = (lx, lz) => {
     const LH = 4.2;         // target post height (world units)
-    let headY = LH * 0.82;  // light/glow sit at the lantern head; refined after load
+    let headY = LH * 0.82;  // light/glow sit INSIDE the lantern glass (centroid ~0.835); refined after load
     const lampGroup = new THREE.Group();
     lampGroup.position.set(lx, deckTop, z + lz);
     add(lampGroup);
 
     // Warm glow sprite + point light + floor pool (flicker-ready). Created now at a
-    // default head height, then dropped onto the real lantern once the model loads.
+    // default head height, then dropped INTO the lantern glass once the model loads.
     const glow = new THREE.Sprite(new THREE.SpriteMaterial({
       map: lampGlowTex(), color: 0xffc878, transparent: true, opacity: 0.5,
       depthWrite: false, blending: THREE.AdditiveBlending, fog: false,
     }));
-    glow.position.set(0, headY, 0); glow.scale.set(1.4, 1.4, 1);
+    glow.position.set(0, headY, 0); glow.scale.set(1.15, 1.15, 1);
     lampGroup.add(glow);
 
     const L = new THREE.PointLight(0xffb45a, 1.8, 12, 2);
@@ -606,7 +606,7 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
       const { size } = normalize(lm, { height: LH, ground: true });
       lm.traverse((o) => { if (o.isMesh) o.castShadow = false; });   // keep original materials
       lampGroup.add(lm);
-      headY = size.y * 0.86;                    // real lantern height near the top
+      headY = size.y * 0.82;                    // lantern glass height (glow sits inside it)
       glow.position.y = headY; L.position.y = headY;
     });
 
