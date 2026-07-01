@@ -495,6 +495,26 @@ function addStationModel(G, X, z, side, bD) {
   }).catch((e) => console.warn('[world] station model load failed:', e.message));
 }
 
+// Platform decking: one weathered-plank photo (1024², ~130KB) shared by both station
+// decks. Reused as its own bumpMap so grain catches raked lamp light for free — no
+// extra download. Colour-multiplied down to sit in the dark night scene.
+let _deckMat;
+function deckMaterial() {
+  if (_deckMat) return _deckMat;
+  const tex = new THREE.TextureLoader().load('assets/textures/opt/wood_floor_diff_1024.jpg');
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.anisotropy = 8;
+  tex.center.set(0.5, 0.5);
+  tex.rotation = Math.PI / 2;                 // turn the photo's planks to run along Z (platform length)
+  tex.repeat.set(16, 3);                      // ~2m plank tile: many boards down the length, a few across
+  _deckMat = new THREE.MeshStandardMaterial({
+    map: tex, bumpMap: tex, bumpScale: 0.05,
+    color: 0x8b8479, roughness: 0.94, metalness: 0.0,
+  });
+  return _deckMat;
+}
+
 function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, name = '', tMin = 0, tMax = 1 }) {
   const G = new THREE.Group(); scene.add(G);
   // Static geometry → keep frustum culling ON (off-screen stations aren't drawn).
@@ -510,7 +530,6 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
   const brickQ  = stoneMaterial({ stone: new THREE.Color(0x5c3423), mortar: new THREE.Color(0x160d07), scale: 2.6, bump: 1.2 });   // reddish brick quoins
   const slate   = slateMaterial({ base: new THREE.Color(0x4a281a), moss: new THREE.Color(0x262614), scale: 0.86, bump: 1.0 }); // darker terracotta pantiles, slightly smaller tiles
   const timber  = woodMaterial({ light: new THREE.Color(0x322212), dark: new THREE.Color(0x120a04), scale: 1.4 });
-  const deckWood = woodMaterial({ light: new THREE.Color(0x392717), dark: new THREE.Color(0x180f07), scale: 0.7 });
   const iron    = weatheredMetal({
     base: new THREE.Color(0x191a18), rust: new THREE.Color(0x4f2d1a),
     yLow: 0.0, yHigh: 4.0, paintRough: 0.62, rustRough: 0.97, metalBase: 0.62, scale: 1.6, panel: 0.0, rustAmt: 0.42,
@@ -528,10 +547,11 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
   // ---- raised plank platform (base slab + individual boards with grain gaps) ----
   const PLEN = 42, deckTop = 0.92, nearD = 2.6, farD = 10.6, midD = (nearD + farD) / 2, pW = farD - nearD;
   box(pW, deckTop, PLEN, stone, midD, deckTop / 2, 0);                 // stone substructure
-  for (let d = nearD + 0.25; d < farD; d += 0.5) {                    // deck boards (grain runs along z), gaps show the dark base
-    const m = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.1, PLEN), deckWood);
-    m.position.set(X(d), deckTop + 0.05, z); add(m);
-  }
+  // deck surface — real weathered-plank photo (one lightweight 1K texture, shared by
+  // both stations). Planks run along the platform length (Z). The photo already carries
+  // seams/knots/wear, so a single slab reads richer than the old procedural boards.
+  const deck = new THREE.Mesh(new THREE.BoxGeometry(pW, 0.12, PLEN), deckMaterial());
+  deck.position.set(X(midD), deckTop + 0.06, z); add(deck);
   box(0.18, 0.5, PLEN, timber, nearD - 0.02, deckTop - 0.1, 0);        // timber edge fascia (track side)
   for (let dz = -PLEN / 2 + 2; dz <= PLEN / 2 - 2; dz += 5)            // trestle supports under the edge
     box(0.3, deckTop, 0.3, timber, nearD + 0.2, deckTop / 2, dz);
@@ -573,11 +593,18 @@ function buildStation(scene, { z, side = 1, trackX = 0, accent = PALETTE.ember, 
   // ridge cap along the apex
   const ridge = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.26, bW + 0.8), slate);
   ridge.position.set(X(bD), bH + 2.42, z); ridge.rotation.y = Math.PI / 4; ridge.scale.x = 0.7; add(ridge);
-  box(7.0, 1.7, 0.3, stone, bD, bH + 0.85, -bW / 2 + 0.16);
-  box(7.0, 1.7, 0.3, stone, bD, bH + 0.85, bW / 2 - 0.16);
-  // brick chimney + slate cap
-  box(1.0, 2.4, 1.0, brickQ, bD + 1.6, bH + 1.7, -2.2);
-  box(1.3, 0.3, 1.3, slate, bD + 1.6, bH + 3.0, -2.2);
+  // TRIANGULAR gable-end walls that fill each end up to the ridge and tuck UNDER the
+  // roof slopes. (These were rectangular panels whose top corners stuck up above the
+  // sloping roofline at the sides — the "side walls protruding the roof".)
+  const gShape = new THREE.Shape();
+  gShape.moveTo(-3.5, 0); gShape.lineTo(3.5, 0); gShape.lineTo(0, 2.35); gShape.closePath();
+  const gGeo = new THREE.ExtrudeGeometry(gShape, { depth: 0.3, bevelEnabled: false });
+  for (const dz of [-bW / 2 + 0.16, bW / 2 - 0.16]) {
+    const gm = new THREE.Mesh(gGeo, stone);
+    gm.position.set(X(bD), bH, z + dz - 0.15); add(gm);
+  }
+  // (chimney removed — it poked above the ridge and read as a protrusion; the clean
+  //  gabled roof + clock tower carry the silhouette now)
 
   // The track-facing wall plane (the stone body's front face). Door/windows are
   // thin in X (depth) and wide in Z (along the wall), sitting PROUD of this face
